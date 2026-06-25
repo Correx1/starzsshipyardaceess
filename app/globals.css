@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-dark: #001d3f;
+  --color-primary-blue: #04356a;
+  --color-dull-white: #f8f9fa;
+  --color-success: #10b981;
+  --color-destructive: #ef4444;
+
+  /* Strict border radius limit of maximum 4px */
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+  --radius-full: 4px;
+}
+
+:root {
+  --background: #f8f9fa;
+  --foreground: #18181b;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Custom scrollbar for professional look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive font scaling for PC/laptops to ensure optimal readability on larger displays */
+@media (min-width: 1024px) {
+  html {
+    font-size: 106.25%; /* 17px base (increases readability on tablets/laptops) */
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 112.5%; /* 18px base (increases readability on desktop monitors) */
+  }
+}
+
+@media (min-width: 1536px) {
+  html {
+    font-size: 118.75%; /* 19px base (optimal for large/ultra-wide screens) */
+  }
+}
