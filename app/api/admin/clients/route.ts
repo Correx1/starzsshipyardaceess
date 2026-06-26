@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyAdminToken } from "@/lib/auth";
@@ -13,7 +14,7 @@ async function verifyAdminAuth() {
   return await verifyAdminToken(adminCookie);
 }
 
-// GET: Fetch all B2B Clients
+// GET: Fetch all  Clients
 export async function GET(req: NextRequest) {
   try {
     const adminSession = await verifyAdminAuth();
@@ -27,18 +28,18 @@ export async function GET(req: NextRequest) {
       .order("org_name", { ascending: true });
 
     if (error) {
-      console.error("Error fetching B2B clients:", error);
+      console.error("Error fetching clients:", error);
       return NextResponse.json({ error: "Failed to retrieve client list." }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, clients });
   } catch (err: any) {
-    console.error("Admin B2B clients GET error:", err);
+    console.error("Admin  clients GET error:", err);
     return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
   }
 }
 
-// POST: Create a new B2B Client
+// POST: Create a new  Client
 export async function POST(req: NextRequest) {
   try {
     const adminSession = await verifyAdminAuth();
@@ -60,13 +61,13 @@ export async function POST(req: NextRequest) {
 
     // 1. Restrict username from being "admin"
     if (cleanUsername === "admin" || cleanUsername === envUsername) {
-      return NextResponse.json({ error: "Username 'admin' is reserved and cannot be used for B2B client accounts." }, { status: 400 });
+      return NextResponse.json({ error: "Username 'admin' is reserved and cannot be used for  client accounts." }, { status: 400 });
     }
 
     // 2. Enforce email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanUsername)) {
-      return NextResponse.json({ error: "Client username must be a valid email address (e.g. partner@corp.com)." }, { status: 400 });
+      return NextResponse.json({ error: "Client username must be a valid email address (e.g. info@sicl.com)." }, { status: 400 });
     }
 
     if (!password || password.length < 6) {
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Error creating B2B client:", error);
+      console.error("Error creating  client:", error);
       if (error.code === "23505") { // Unique violation
         return NextResponse.json({ error: "Organization Name or Username already exists." }, { status: 409 });
       }
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, client: newClient });
   } catch (err: any) {
-    console.error("Admin B2B clients POST error:", err);
+    console.error("Admin  clients POST error:", err);
     return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
   }
 }
@@ -172,7 +173,7 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Error updating B2B client:", error);
+      console.error("Error updating  client:", error);
       if (error.code === "23505") {
         return NextResponse.json({ error: "Organization Name or Username already exists." }, { status: 409 });
       }
@@ -181,12 +182,12 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true, client: updatedClient });
   } catch (err: any) {
-    console.error("Admin B2B clients PUT error:", err);
+    console.error("Admin  clients PUT error:", err);
     return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
   }
 }
 
-// DELETE: Delete a B2B Client (Cascade deletes requests due to database foreign key)
+// DELETE: Delete a  Client (Cascade deletes requests due to database foreign key)
 export async function DELETE(req: NextRequest) {
   try {
     const adminSession = await verifyAdminAuth();
@@ -205,13 +206,13 @@ export async function DELETE(req: NextRequest) {
       .eq("id", id);
 
     if (error) {
-      console.error("Error deleting B2B client:", error);
+      console.error("Error deleting  client:", error);
       return NextResponse.json({ error: "Failed to delete client account." }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("Admin B2B clients DELETE error:", err);
+    console.error("Admin  clients DELETE error:", err);
     return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
   }
 }

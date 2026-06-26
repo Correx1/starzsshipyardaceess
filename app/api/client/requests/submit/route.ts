@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
               <!-- Header -->
               <tr>
                 <td style="background-color: #001d3f; padding: 24px; text-align: center;">
-                  <h1 style="margin: 0; color: #ffffff; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.4;">Starzs Marine and Engineering Ltd (SMEL) Access Control</h1>
+                  <h1 style="margin: 0; color: #ffffff; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.4;">STARZS MARINE AND ENGINEERING LTD ACCESS CONTROL</h1>
                   <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">NEW ACCESS REGISTRATION PENDING</p>
                 </td>
               </tr>
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
               <tr>
                 <td style="padding: 30px 24px;">
                   <p style="margin: 0 0 16px 0; font-size: 14px; color: #334155; line-height: 1.5;">
-                    A new facility entry request has been submitted by B2B Client <strong>${clientDb.org_name}</strong> and is awaiting your decision.
+                    A new facility entry request has been submitted by  Client <strong>${clientDb.org_name}</strong> and is awaiting your decision.
                   </p>
                   
                   <!-- Request Info -->

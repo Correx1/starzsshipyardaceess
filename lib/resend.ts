@@ -5,7 +5,7 @@
  */
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "STARZS Access <onboarding@resend.dev>";
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "STARZS MARINE AND ENGINEERING LTD Access <onboarding@resend.dev>";
 
 /**
  * Dispatches a professional HTML email via Resend API

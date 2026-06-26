@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Access request not found." }, { status: 404 });
     }
 
-    // 3. Confirm B2B client owns this request
+    // 3. Confirm  client owns this request
     if (request.client_id !== clientSession.id) {
       return NextResponse.json({ error: "Unauthorized. This request belongs to a different workspace." }, { status: 403 });
     }

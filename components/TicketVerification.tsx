@@ -180,7 +180,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
             </div>
             <h2 className="text-base font-black text-rose-700 uppercase tracking-wider">ACCESS CANCELLED / REVOKED</h2>
             <p className="text-zinc-600 text-[11px] font-semibold mt-1 leading-relaxed">
-              This access request has been cancelled by the B2B client workspace. Access is strictly denied.
+              This access request has been cancelled by the  client workspace. Access is strictly denied.
             </p>
           </div>
         ) : isDenied ? (
@@ -206,18 +206,11 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
         )}
 
         {/* Form Message Feedback */}
-        {(error || successMsg) && (
+        {successMsg && (
           <div className="px-6 pt-4">
-            {error && (
-              <div className="bg-rose-50 border-l-2 border-destructive text-destructive px-3 py-2.5 rounded text-xs font-bold leading-normal">
-                {error}
-              </div>
-            )}
-            {successMsg && (
-              <div className="bg-emerald-50 border-l-2 border-success text-success px-3 py-2.5 rounded text-xs font-bold leading-normal">
-                {successMsg}
-              </div>
-            )}
+            <div className="bg-emerald-50 border-l-2 border-success text-success px-3 py-2.5 rounded text-xs font-bold leading-normal">
+              {successMsg}
+            </div>
           </div>
         )}
 
@@ -251,7 +244,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
                 <div className="flex items-start gap-2.5">
                   <User className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-[8px] text-zinc-400 font-bold uppercase block">Requesting B2B Staff:</span>
+                    <span className="text-[8px] text-zinc-400 font-bold uppercase block">Requesting  Staff:</span>
                     <span className="font-semibold text-zinc-800">{ticket.requesting_staff_name}</span>
                   </div>
                 </div>
@@ -356,6 +349,11 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
           {/* Gatekeeper Actions (Only if Approved and not fully Expired) */}
           {isApproved && !isExpired && !isCancelled && (
             <div className="pt-4 border-t border-zinc-100 space-y-3.5">
+              {error && (
+                <div className="bg-rose-50 border-l-2 border-destructive text-destructive px-3 py-2.5 rounded text-xs font-bold leading-normal">
+                  {error}
+                </div>
+              )}
               {/* Security Guard Code Input */}
               <div className="space-y-1 text-left">
                 <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">

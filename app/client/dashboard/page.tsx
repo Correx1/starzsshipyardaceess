@@ -16,7 +16,7 @@ export default async function ClientDashboardPage() {
     redirect("/");
   }
 
-  // 1. Verify B2B Client Token
+  // 1. Verify  Client Token
   const clientSession = await verifyClientToken(clientCookie);
   if (!clientSession) {
     redirect("/");

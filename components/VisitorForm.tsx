@@ -217,6 +217,7 @@ export default function VisitorForm({ token }: VisitorFormProps) {
               id="date"
               value={expectedDate}
               onChange={(e) => setExpectedDate(e.target.value)}
+              min={new Date().toLocaleDateString("en-CA")}
               className="block w-full pl-9 pr-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue"
               required
             />

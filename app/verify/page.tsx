@@ -59,7 +59,7 @@ export default function VerifySearchPage() {
       {/* Small Header */}
       <header className="py-4 flex items-center justify-center gap-2 border-b border-primary-blue">
         <ShieldCheck className="w-6 h-6 text-white" />
-        <span className="font-bold text-sm uppercase tracking-wider">STARZS Gate Security Portal</span>
+        <span className="font-bold text-xs sm:text-sm uppercase tracking-wider text-center">STARZS MARINE AND ENGINEERING LTD GATE SECURITY PORTAL</span>
       </header>
 
       {/* Main Container */}
@@ -132,7 +132,7 @@ export default function VerifySearchPage() {
 
       {/* Footer */}
       <footer className="py-4 text-center text-[10px] text-zinc-400 font-medium">
-        STARZS Facility Access Control &copy; 2026. All rights reserved.
+        STARZS MARINE AND ENGINEERING LTD ACCESS CONTROL &copy; 2026. All rights reserved.
       </footer>
     </div>
   );

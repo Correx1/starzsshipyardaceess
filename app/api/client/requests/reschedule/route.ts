@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Access request not found." }, { status: 404 });
     }
 
-    // 3. Confirm B2B client ownership
+    // 3. Confirm  client ownership
     if (request.client_id !== clientSession.id) {
       return NextResponse.json({ error: "Unauthorized. This request belongs to a different workspace." }, { status: 403 });
     }
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
       const adminEmails = adminSettings?.value?.trim();
       if (adminEmails) {
-        const clientOrgName = request.clients?.org_name || "B2B Partner";
+        const clientOrgName = request.clients?.org_name || " Partner";
         const emailHtml = getRescheduledEmailTemplate({
           ticketNumber: request.ticket_number,
           clientOrgName,

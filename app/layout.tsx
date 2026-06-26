@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "STARZS - Access Control Management",
+  title: "STARZS MARINE AND ENGINEERING LTD - Access Control Management",
   description: "Compound security dispatch and gate auditing dashboard.",
 };
 

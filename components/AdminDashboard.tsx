@@ -40,7 +40,7 @@ interface AccessRequest {
   requesting_staff_email?: string;
 }
 
-interface B2BClient {
+interface Client {
   id: string;
   org_name: string;
   username: string;
@@ -81,7 +81,7 @@ interface SecurityGuard {
 }
 
 interface AdminDashboardProps {
-  initialClients: B2BClient[];
+  initialClients: Client[];
   initialRequests: AccessRequest[];
   initialAdminEmails: string;
   initialAllowedCategories: string[];
@@ -130,12 +130,12 @@ export default function AdminDashboard({
 
   // State Management
   const [requests, setRequests] = useState<AccessRequest[]>(initialRequests);
-  const [clients, setClients] = useState<B2BClient[]>(initialClients);
+  const [clients, setClients] = useState<Client[]>(initialClients);
 
   // Sidebar Collapsible State (for PC & Mobile Drawer Overlay)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // B2B Client Editing States
+  //  Client Editing States
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
 
   // Focus Request Logs Filters
@@ -146,7 +146,7 @@ export default function AdminDashboard({
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Focus B2B Clients Filters
+  // Focus  Clients Filters
   const [searchClient, setSearchClient] = useState("");
 
   // Outgoing Email Signature Editing State
@@ -155,7 +155,7 @@ export default function AdminDashboard({
   // Selection states
   const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
 
-  // B2B Client creation form state
+  //  Client creation form state
   const [newClientOrg, setNewClientOrg] = useState("");
   const [newClientUser, setNewClientUser] = useState("");
   const [newClientPass, setNewClientPass] = useState("");
@@ -429,7 +429,7 @@ export default function AdminDashboard({
           const matchingClient = clients.find((c) => c.id === req.client_id);
           return {
             ...req,
-            clientOrgName: matchingClient ? matchingClient.org_name : "B2B Partner",
+            clientOrgName: matchingClient ? matchingClient.org_name : " Partner",
           };
         });
         setRequests(mappedData as AccessRequest[]);
@@ -466,7 +466,7 @@ export default function AdminDashboard({
               entered_at: newReq.entered_at,
               exited_at: newReq.exited_at,
               created_at: newReq.created_at,
-              clientOrgName: matchingClient ? matchingClient.org_name : "B2B Partner",
+              clientOrgName: matchingClient ? matchingClient.org_name : " Partner",
               gate_notes: newReq.gate_notes,
               last_rescheduled_at: newReq.last_rescheduled_at,
             };
@@ -487,7 +487,7 @@ export default function AdminDashboard({
               entered_at: updatedReq.entered_at,
               exited_at: updatedReq.exited_at,
               created_at: updatedReq.created_at,
-              clientOrgName: matchingClient ? matchingClient.org_name : "B2B Partner",
+              clientOrgName: matchingClient ? matchingClient.org_name : " Partner",
               gate_notes: updatedReq.gate_notes,
               last_rescheduled_at: updatedReq.last_rescheduled_at,
             };
@@ -526,7 +526,7 @@ export default function AdminDashboard({
     }
   };
 
-  // Create or Edit B2B Client Workspace
+  // Create or Edit  Client Workspace
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateClientError(null);
@@ -612,7 +612,7 @@ export default function AdminDashboard({
     }
   };
 
-  // Delete B2B Client Workspace
+  // Delete  Client Workspace
   const handleDeleteClient = async (clientId: string, orgName: string) => {
     const confirmed = confirm(`Are you sure you want to permanently delete the partner workspace "${orgName}"?\nAll associated entrance requests and history logs will be permanently deleted from the system.`);
     if (!confirmed) return;
@@ -637,7 +637,7 @@ export default function AdminDashboard({
 
 
 
-  // Toggle/Update B2B Client Status (Active/Suspended/Restricted)
+  // Toggle/Update  Client Status (Active/Suspended/Restricted)
   const handleUpdateClientStatus = async (clientId: string, newStatus: "active" | "suspended" | "restricted") => {
     try {
       const response = await fetch("/api/admin/clients", {
@@ -886,7 +886,7 @@ export default function AdminDashboard({
   // Renders clients list, security guards registry, and settings (reused in desktop sidebar and mobile drawer)
   const renderClientsAndSettings = () => (
     <div className="space-y-6">
-      {/* B2B Clients Account Manager */}
+      {/*  Clients Account Manager */}
       <div className="bg-white border border-zinc-200 rounded p-6 shadow-sm space-y-5">
         <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-2">
           <Users className="w-4 h-4 text-primary-blue" />
@@ -973,27 +973,20 @@ export default function AdminDashboard({
         <div className="space-y-3 pt-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h4 className="text-xs font-extrabold uppercase text-zinc-400 tracking-wide">Companies</h4>
-            <input
-              type="text"
-              placeholder="Filter registry..."
-              value={searchClient}
-              onChange={(e) => setSearchClient(e.target.value)}
-              className="block w-[160px] px-3 py-1.5 bg-white border border-zinc-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-primary-blue"
-            />
           </div>
 
           <div className="border border-zinc-200 rounded divide-y divide-zinc-200 max-h-[220px] overflow-y-auto pr-1 bg-white">
-            {filteredClients.length === 0 ? (
+            {clients.length === 0 ? (
               <p className="text-zinc-400 text-xs italic text-center py-8">No company registered.</p>
             ) : (
-              filteredClients.map((client) => (
-                <div key={client.id} className="p-3 flex items-center justify-between gap-4 text-sm">
-                  <div className="min-w-0">
-                    <span className="font-bold text-sm text-zinc-800 block truncate uppercase">{client.org_name}</span>
-                    <span className="text-xs text-zinc-500 font-mono block truncate mt-0.5">{client.username}</span>
+              clients.map((client) => (
+                <div key={client.id} className="p-3 flex flex-col sm:flex-row sm:items-start sm:items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-bold text-sm text-zinc-800 block uppercase break-words">{client.org_name}</span>
+                    <span className="text-xs text-zinc-500 font-mono block mt-0.5 break-all">{client.username}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 mt-2 sm:mt-0 shrink-0 self-start sm:self-auto">
                     {/* Status dropdown */}
                     <select
                       value={client.status}
@@ -1097,13 +1090,13 @@ export default function AdminDashboard({
                 className="block w-full px-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-primary-blue"
                 required
               />
-              <div className="flex gap-2 w-full">
+              <div className="flex gap-2 w-full items-center">
                 <input
                   type="text"
-                  placeholder="Security Guard Code (Generated PIN)"
+                  placeholder="PIN"
                   value={guardCode}
                   readOnly
-                  className="block flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded text-sm text-zinc-500 font-mono font-bold cursor-not-allowed select-all"
+                  className="block w-32 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded text-sm text-zinc-500 font-mono font-bold cursor-not-allowed select-all"
                   title="This PIN code is automatically generated for security and uniqueness (4 numbers and 2 letters at the ending)."
                 />
                 <button
@@ -1139,17 +1132,17 @@ export default function AdminDashboard({
               <p className="text-zinc-400 text-xs italic text-center py-8">No security guards registered.</p>
             ) : (
               guards.map((guard) => (
-                <div key={guard.id} className="p-3 flex items-center justify-between gap-4 text-sm">
-                  <div className="min-w-0">
-                    <span className="font-bold text-sm text-zinc-800 block truncate uppercase">{guard.name}</span>
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500 font-mono">
+                <div key={guard.id} className="p-3 flex flex-col sm:flex-row sm:items-start sm:items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-bold text-sm text-zinc-800 block uppercase break-words">{guard.name}</span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5 text-xs text-zinc-500 font-mono">
                       <span>{guard.phone}</span>
-                      <span>•</span>
-                      <span className="bg-zinc-100 px-1 py-0.5 rounded font-bold text-zinc-700">Code: {guard.code}</span>
+                      <span className="hidden sm:inline text-zinc-300">•</span>
+                      <span className="bg-zinc-100 px-1.5 py-0.5 rounded font-bold text-zinc-700">Code: {guard.code}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 mt-2 sm:mt-0 shrink-0 self-start sm:self-auto">
                     {/* Status Toggle Button */}
                     <button
                       type="button"
@@ -1237,7 +1230,8 @@ export default function AdminDashboard({
             </div>
             
             {/* Input with inline Add button */}
-            <div className="flex gap-2">
+            {/* Input with inline Add button */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 placeholder="e.g. officer@starzs.com"
@@ -1249,12 +1243,12 @@ export default function AdminDashboard({
                     handleAddEmailPill();
                   }
                 }}
-                className="block flex-1 px-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-primary-blue"
+                className="block flex-1 px-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-primary-blue w-full"
               />
               <button
                 type="button"
                 onClick={() => handleAddEmailPill()}
-                className="bg-primary-blue hover:bg-primary-dark text-white px-4 py-2 rounded font-bold text-xs transition-colors cursor-pointer"
+                className="bg-primary-blue hover:bg-primary-dark text-white px-4 py-2 rounded font-bold text-xs transition-colors cursor-pointer w-full sm:w-auto shrink-0 py-2.5 sm:py-2"
               >
                 Add Email
               </button>
@@ -1290,7 +1284,7 @@ export default function AdminDashboard({
             </div>
 
             {/* Inline dynamic category creator */}
-            <div className="flex gap-2 bg-zinc-50 border border-zinc-200 p-3 rounded">
+            <div className="flex flex-col sm:flex-row gap-2 bg-zinc-50 border border-zinc-200 p-3 rounded">
               <input
                 type="text"
                 placeholder="New Category (e.g. Vehicles, Tools)"
@@ -1302,12 +1296,12 @@ export default function AdminDashboard({
                     handleAddCategory(e);
                   }
                 }}
-                className="block flex-1 px-3 py-1.5 bg-white border border-zinc-300 rounded text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-primary-blue"
+                className="block flex-1 px-3 py-2 bg-white border border-zinc-300 rounded text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-primary-blue w-full"
               />
               <button
                 type="button"
                 onClick={(e) => handleAddCategory(e)}
-                className="bg-primary-dark hover:bg-primary-blue text-white px-4 py-1.5 rounded font-bold text-xs transition-colors cursor-pointer shrink-0"
+                className="bg-primary-dark hover:bg-primary-blue text-white px-4 py-2 rounded font-bold text-xs transition-colors cursor-pointer shrink-0 w-full sm:w-auto"
               >
                 + Add Category
               </button>
@@ -1335,14 +1329,19 @@ export default function AdminDashboard({
           /* PREVIEW MODE: Do not keep signature in input fields when saved */
           <div className="bg-zinc-50 border border-zinc-200 p-4 rounded space-y-4 font-sans">
             <p className="text-zinc-500 text-xs leading-relaxed">
-              Configure details that will be appended as a professional email signature block at the bottom of all dispatched B2B notifications.
+              Configure details that will be appended as a professional email signature block at the bottom of all dispatched  notifications.
             </p>
-            <div className="border-l-2 border-primary-blue pl-3.5 py-1 space-y-1 bg-white p-3 rounded-r shadow-sm">
-              <p className="text-xs text-zinc-400 italic mb-1.5">Active signature block preview:</p>
+            <div className="border-l-2 border-primary-blue pl-3.5 py-1.5 space-y-1 bg-white p-3 rounded-r shadow-sm">
+              <p className="text-xs text-zinc-400 italic mb-1">Active signature block preview:</p>
               
-              <p className="text-sm font-bold text-primary-dark">{sigName}</p>
-              {sigCompany && <p className="text-xs text-zinc-600 font-semibold">{sigCompany}</p>}
-              {sigPhone && <p className="text-xs text-zinc-500 font-mono">Phone: {sigPhone}</p>}
+              <p className="font-serif italic text-sm font-bold text-primary-dark tracking-wide">
+                {sigName.toLowerCase().split(/\s+/).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+              </p>
+              {sigCompany && (
+                <p className="font-serif italic text-xs text-zinc-500 font-semibold mt-0.5">
+                  {sigCompany.toLowerCase().split(/\s+/).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                </p>
+              )}
             </div>
             <div className="flex gap-2.5">
               <button
@@ -1388,7 +1387,7 @@ export default function AdminDashboard({
                 />
                 <input
                   type="text"
-                  placeholder="Designation/Company (e.g. STARZS Terminal Ops)"
+                  placeholder="Designation/Company (e.g. STARZS MARINE AND ENGINEERING LTD Terminal Ops)"
                   value={sigCompany}
                   onChange={(e) => setSigCompany(e.target.value)}
                   className="block w-full px-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-primary-blue"
@@ -1429,13 +1428,13 @@ export default function AdminDashboard({
       
       {/* Admin Header */}
       <header className="bg-primary-dark text-white px-4 md:px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary-blue rounded-sm">
+        <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
+          <div className="p-2 bg-primary-blue rounded-sm shrink-0">
             <Shield className="w-5 h-5 text-white" />
           </div>
-          <div>
-            <h1 className="text-base font-bold tracking-tight uppercase">STARZS Facility Access</h1>
-            <p className="text-zinc-400 text-[9px] uppercase font-extrabold tracking-wider">Owner Administration Panel</p>
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-sm md:text-base font-black tracking-tight uppercase break-words leading-tight">STARZS MARINE AND ENGINEERING LTD ACCESS CONTROL</h1>
+            <p className="text-zinc-400 text-[9px] uppercase font-extrabold tracking-wider mt-0.5">Owner Administration Panel</p>
           </div>
         </div>
 
@@ -1480,7 +1479,7 @@ export default function AdminDashboard({
           </div>
 
           {/* Stats Badges Dashboard */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Pending */}
             <div className="bg-white border border-zinc-200 rounded p-4 shadow-sm flex items-center justify-between">
               <div>
@@ -1546,7 +1545,7 @@ export default function AdminDashboard({
                   />
                 </div>
 
-                {/* B2B Client Dropdown Filter */}
+                {/*  Client Dropdown Filter */}
                 <div className="flex items-center gap-1.5 border border-zinc-300 rounded bg-white px-2.5 py-1.5 text-xs text-zinc-600 w-full sm:w-auto">
                   <Briefcase className="w-4 h-4 text-zinc-400" />
                   <select
@@ -1554,7 +1553,7 @@ export default function AdminDashboard({
                     onChange={(e) => { setSelectedClientId(e.target.value); setCurrentPage(1); }}
                     className="bg-transparent font-bold focus:outline-none cursor-pointer text-xs w-full sm:w-auto"
                   >
-                    <option value="all">All B2B Partners</option>
+                    <option value="all">All  Partners</option>
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.org_name}
@@ -1588,7 +1587,7 @@ export default function AdminDashboard({
                 <thead className="bg-zinc-50 font-bold text-zinc-500 uppercase tracking-wider text-xs">
                   <tr>
                     <th className="px-6 py-4">PIN / Ticket</th>
-                    <th className="px-6 py-4">B2B Partner / Driver</th>
+                    <th className="px-6 py-4"> Partner / Driver</th>
                     <th className="px-6 py-4 text-center">Entry Date</th>
                     <th className="px-6 py-4 text-center">Items</th>
                     <th className="px-6 py-4 text-center">Lifecycle Status</th>
@@ -1812,7 +1811,7 @@ export default function AdminDashboard({
                   <div className="px-4 py-3 flex items-start gap-3 text-sm">
                     <Briefcase className="w-4.5 h-4.5 text-zinc-400 mt-0.5 shrink-0" />
                     <div>
-                      <span className="text-[10px] text-zinc-400 block font-bold uppercase">B2B Partner Company</span>
+                      <span className="text-[10px] text-zinc-400 block font-bold uppercase"> Partner Company</span>
                       <span className="font-bold text-primary-blue uppercase">{selectedRequest.clientOrgName}</span>
                     </div>
                   </div>
@@ -1830,7 +1829,7 @@ export default function AdminDashboard({
                     <div className="px-4 py-3 flex items-start gap-3 text-sm">
                       <User className="w-4.5 h-4.5 text-zinc-400 mt-0.5 shrink-0" />
                       <div>
-                        <span className="text-[10px] text-zinc-400 block font-bold uppercase">Requesting B2B Staff</span>
+                        <span className="text-[10px] text-zinc-400 block font-bold uppercase">Requesting  Staff</span>
                         <span className="font-semibold text-zinc-800 text-xs">{selectedRequest.requesting_staff_name}</span>
                       </div>
                     </div>

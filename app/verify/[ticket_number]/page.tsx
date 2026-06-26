@@ -13,7 +13,7 @@ export default async function TicketVerificationPage({ params }: PageProps) {
   const { ticket_number } = await params;
   
   let ticket = null;
-  let clientOrgName = "B2B Client Partner";
+  let clientOrgName = " Client Partner";
   let errorMsg = null;
 
   try {

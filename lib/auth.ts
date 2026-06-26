@@ -29,7 +29,7 @@ export async function verifyAdminToken(token: string): Promise<{ username: strin
   }
 }
 
-// --- B2B CLIENT SESSIONS ---
+// ---  CLIENT SESSIONS ---
 
 interface ClientTokenPayload {
   id: string;
@@ -38,7 +38,7 @@ interface ClientTokenPayload {
 }
 
 /**
- * Signs a custom JWT token for a B2B Client session
+ * Signs a custom JWT token for a  Client session
  */
 export async function signClientToken(payload: ClientTokenPayload): Promise<string> {
   return await new SignJWT({ ...payload, role: "client" })
@@ -49,7 +49,7 @@ export async function signClientToken(payload: ClientTokenPayload): Promise<stri
 }
 
 /**
- * Verifies a B2B Client JWT token
+ * Verifies a  Client JWT token
  */
 export async function verifyClientToken(token: string): Promise<ClientTokenPayload | null> {
   try {

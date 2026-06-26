@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    // 2. Otherwise, check B2B client registry
+    // 2. Otherwise, check  client registry
     const { data: client, error } = await supabaseAdmin
       .from("clients")
       .select("*")
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     // Check account suspension
     if (client.status === "suspended") {
       return NextResponse.json(
-        { error: "Your B2B account has been suspended. Please contact administration." },
+        { error: "Your  account has been suspended. Please contact administration." },
         { status: 403 }
       );
     }

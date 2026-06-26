@@ -38,7 +38,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // 2. B2B CLIENT ROUTE PROTECTION (/client/dashboard/* and /api/client/*)
+  // 2.  CLIENT ROUTE PROTECTION (/client/dashboard/* and /api/client/*)
   if (pathname.startsWith("/client/dashboard") || pathname.startsWith("/api/client")) {
     // Exclude the login page and login API from protection to prevent infinite loops!
     if (pathname === "/" || pathname === "/api/auth/login") {
@@ -112,7 +112,7 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// Intercept all admin and B2B client routes
+// Intercept all admin and  client routes
 export const config = {
   matcher: [
     "/dashboard/:path*",

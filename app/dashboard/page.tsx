@@ -22,17 +22,17 @@ export default async function AdminDashboardPage() {
     redirect("/");
   }
 
-  // 2. Fetch all B2B Client Accounts
+  // 2. Fetch all  Client Accounts
   const { data: clientsData, error: clientsError } = await supabaseAdmin
     .from("clients")
     .select("id, org_name, username, status, notification_emails, created_at, updated_at")
     .order("org_name", { ascending: true });
 
   if (clientsError) {
-    console.error("Error fetching B2B clients for admin:", clientsError);
+    console.error("Error fetching  clients for admin:", clientsError);
   }
 
-  // 3. Fetch all B2B Access Requests joined with Client details
+  // 3. Fetch all  Access Requests joined with Client details
   const { data: requestsData, error: requestsError } = await supabaseAdmin
     .from("access_requests")
     .select(`
@@ -147,7 +147,7 @@ export default async function AdminDashboardPage() {
     entered_at: req.entered_at,
     exited_at: req.exited_at,
     created_at: req.created_at,
-    clientOrgName: req.clients?.org_name || "B2B Partner",
+    clientOrgName: req.clients?.org_name || " Partner",
     client_id: req.client_id,
     entered_by: req.entered_by,
     exited_by: req.exited_by,

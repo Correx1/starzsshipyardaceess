@@ -1,6 +1,6 @@
 /**
  * Generates highly professional HTML email templates for Starzs Marine and Engineering Ltd (SMEL) Access Control.
- * Fully optimized for B2B Client requests containing requesting staff details and resource checklists.
+ * Fully optimized for  Client requests containing requesting staff details and resource checklists.
  */
 
 interface ResourceItem {
@@ -59,8 +59,18 @@ interface RescheduledEmailData {
   adminSignatureCompany?: string;
 }
 
+// Helper to format signature name as Capitalized words (Title Case)
+const formatSignatureName = (name: string): string => {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 /**
- * Returns the HTML email template for an APPROVED B2B access request
+ * Returns the HTML email template for an APPROVED  access request
  */
 export function getApprovedEmailTemplate(data: ApprovedEmailData): string {
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
@@ -98,11 +108,9 @@ export function getApprovedEmailTemplate(data: ApprovedEmailData): string {
     .join("");
 
   const signatureHtml = data.adminSignatureName ? `
-    <div style="margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #475569; line-height: 1.5; text-align: left;">
-      <p style="margin: 0 0 4px 0;">Best regards,</p>
-      <p style="margin: 0; font-weight: 700; color: #001d3f;">${data.adminSignatureName}</p>
-      ${data.adminSignatureCompany ? `<p style="margin: 0; font-size: 11px; font-weight: 600; color: #64748b;">${data.adminSignatureCompany}</p>` : ""}
-      ${data.adminSignaturePhone ? `<p style="margin: 2px 0 0 0; font-size: 11px; font-family: monospace; color: #64748b;">Phone: ${data.adminSignaturePhone}</p>` : ""}
+    <div style="margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; text-align: left;">
+      <p style="margin: 0 0 3px 0; font-family: 'Georgia', serif; font-style: italic; font-size: 13px; font-weight: bold; color: #001d3f; letter-spacing: 0.01em;">${formatSignatureName(data.adminSignatureName)}</p>
+      ${data.adminSignatureCompany ? `<p style="margin: 0; font-family: 'Georgia', serif; font-style: italic; font-size: 10px; font-weight: 600; color: #64748b;">${formatSignatureName(data.adminSignatureCompany)}</p>` : ""}
     </div>
   ` : "";
 
@@ -111,14 +119,14 @@ export function getApprovedEmailTemplate(data: ApprovedEmailData): string {
     <html>
       <head>
         <meta charset="utf-8">
-        <title>Access Approved - SMEL Access Control</title>
+        <title>Access Approved - STARZS MARINE AND ENGINEERING LTD Access Control</title>
       </head>
       <body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
           <!-- Header -->
           <tr>
             <td style="background-color: #001d3f; padding: 24px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">Starzs Marine and Engineering Ltd (SMEL) Access Control</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">STARZS MARINE AND ENGINEERING LTD ACCESS CONTROL</h1>
               <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">OFFICIAL ENTRY AUTHORIZATION</p>
             </td>
           </tr>
@@ -245,7 +253,7 @@ export function getApprovedEmailTemplate(data: ApprovedEmailData): string {
 }
 
 /**
- * Returns the HTML email template for a DENIED B2B access request
+ * Returns the HTML email template for a DENIED  access request
  */
 export function getDeniedEmailTemplate(data: DeniedEmailData): string {
   const resourcesHtml = data.resources
@@ -279,11 +287,9 @@ export function getDeniedEmailTemplate(data: DeniedEmailData): string {
     .join("");
 
   const signatureHtml = data.adminSignatureName ? `
-    <div style="margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #475569; line-height: 1.5; text-align: left;">
-      <p style="margin: 0 0 4px 0;">Best regards,</p>
-      <p style="margin: 0; font-weight: 700; color: #001d3f;">${data.adminSignatureName}</p>
-      ${data.adminSignatureCompany ? `<p style="margin: 0; font-size: 11px; font-weight: 600; color: #64748b;">${data.adminSignatureCompany}</p>` : ""}
-      ${data.adminSignaturePhone ? `<p style="margin: 2px 0 0 0; font-size: 11px; font-family: monospace; color: #64748b;">Phone: ${data.adminSignaturePhone}</p>` : ""}
+    <div style="margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; text-align: left;">
+      <p style="margin: 0 0 3px 0; font-family: 'Georgia', serif; font-style: italic; font-size: 13px; font-weight: bold; color: #001d3f; letter-spacing: 0.01em;">${formatSignatureName(data.adminSignatureName)}</p>
+      ${data.adminSignatureCompany ? `<p style="margin: 0; font-family: 'Georgia', serif; font-style: italic; font-size: 10px; font-weight: 600; color: #64748b;">${formatSignatureName(data.adminSignatureCompany)}</p>` : ""}
     </div>
   ` : "";
 
@@ -292,14 +298,14 @@ export function getDeniedEmailTemplate(data: DeniedEmailData): string {
     <html>
       <head>
         <meta charset="utf-8">
-        <title>Access Registration Update - SMEL Access Control</title>
+        <title>Access Registration Update - STARZS MARINE AND ENGINEERING LTD Access Control</title>
       </head>
       <body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
           <!-- Header -->
           <tr>
             <td style="background-color: #001d3f; padding: 24px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">Starzs Marine and Engineering Ltd (SMEL) Access Control</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">STARZS MARINE AND ENGINEERING LTD ACCESS CONTROL</h1>
               <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">OFFICIAL ENTRY REGISTRATION</p>
             </td>
           </tr>
@@ -396,7 +402,7 @@ export function getDeniedEmailTemplate(data: DeniedEmailData): string {
           <tr>
             <td style="background-color: #f8f9fa; border-top: 1px solid #e2e8f0; padding: 20px; text-align: center;">
               <p style="margin: 0; color: #64748b; font-size: 11px; line-height: 1.5; font-weight: 500;">
-                If you believe this is an error or wish to reschedule, please contact your B2B representative.
+                If you believe this is an error or wish to reschedule, please contact your  representative.
               </p>
             </td>
           </tr>
@@ -411,11 +417,9 @@ export function getDeniedEmailTemplate(data: DeniedEmailData): string {
  */
 export function getRescheduledEmailTemplate(data: RescheduledEmailData): string {
   const signatureHtml = data.adminSignatureName ? `
-    <div style="margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #475569; line-height: 1.5; text-align: left;">
-      <p style="margin: 0 0 4px 0;">Best regards,</p>
-      <p style="margin: 0; font-weight: 700; color: #001d3f;">${data.adminSignatureName}</p>
-      ${data.adminSignatureCompany ? `<p style="margin: 0; font-size: 11px; font-weight: 600; color: #64748b;">${data.adminSignatureCompany}</p>` : ""}
-      ${data.adminSignaturePhone ? `<p style="margin: 2px 0 0 0; font-size: 11px; font-family: monospace; color: #64748b;">Phone: ${data.adminSignaturePhone}</p>` : ""}
+    <div style="margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; text-align: left;">
+      <p style="margin: 0 0 3px 0; font-family: 'Georgia', serif; font-style: italic; font-size: 13px; font-weight: bold; color: #001d3f; letter-spacing: 0.01em;">${formatSignatureName(data.adminSignatureName)}</p>
+      ${data.adminSignatureCompany ? `<p style="margin: 0; font-family: 'Georgia', serif; font-style: italic; font-size: 10px; font-weight: 600; color: #64748b;">${formatSignatureName(data.adminSignatureCompany)}</p>` : ""}
     </div>
   ` : "";
 
@@ -424,14 +428,14 @@ export function getRescheduledEmailTemplate(data: RescheduledEmailData): string 
     <html>
       <head>
         <meta charset="utf-8">
-        <title>Access Pass Rescheduled - SMEL Access Control</title>
+        <title>Access Pass Rescheduled - STARZS MARINE AND ENGINEERING LTD Access Control</title>
       </head>
       <body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
           <!-- Header -->
           <tr>
             <td style="background-color: #001d3f; padding: 24px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">Starzs Marine and Engineering Ltd (SMEL) Access Control</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">STARZS MARINE AND ENGINEERING LTD ACCESS CONTROL</h1>
               <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">ACCESS RESCHEDULED NOTIFICATION</p>
             </td>
           </tr>
@@ -440,7 +444,7 @@ export function getRescheduledEmailTemplate(data: RescheduledEmailData): string 
           <tr>
             <td style="background-color: #f0f7ff; border-bottom: 1px solid #bfdbfe; padding: 20px; text-align: center;">
               <span style="display: inline-block; background-color: #0284c7; color: #ffffff; font-size: 12px; font-weight: 700; padding: 6px 16px; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.05em;">Ticket Rescheduled</span>
-              <p style="margin: 12px 0 0 0; color: #0369a1; font-size: 13px; font-weight: 500; line-height: 1.5;">B2B Partner <strong>${data.clientOrgName}</strong> has rescheduled an authorized entry pass.</p>
+              <p style="margin: 12px 0 0 0; color: #0369a1; font-size: 13px; font-weight: 500; line-height: 1.5;"> Partner <strong>${data.clientOrgName}</strong> has rescheduled an authorized entry pass.</p>
             </td>
           </tr>
           

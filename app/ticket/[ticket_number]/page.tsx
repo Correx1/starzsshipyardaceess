@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 import React from "react";
 import { supabaseAdmin } from "@/lib/supabase";
 import { Printer, ShieldCheck, User, Calendar, FileText, ArrowRight } from "lucide-react";
@@ -13,7 +15,7 @@ export default async function PrintTicketPage({ params }: PageProps) {
   const { ticket_number } = await params;
 
   let ticket = null;
-  let clientOrgName = "B2B Client Partner";
+  let clientOrgName = " Client Partner";
 
   try {
     const { data, error } = await supabaseAdmin
@@ -72,7 +74,7 @@ export default async function PrintTicketPage({ params }: PageProps) {
         {/* Document Header */}
         <div className="border-b-2 border-primary-dark pb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-extrabold tracking-tight text-primary-dark uppercase">STARZS Access Control</h1>
+            <h1 className="text-xs sm:text-sm md:text-base font-extrabold tracking-tight text-primary-dark uppercase leading-tight">STARZS MARINE AND ENGINEERING LTD ACCESS CONTROL</h1>
             <span className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase block mt-1">Official Facility Entry Pass</span>
           </div>
           <div className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-wider flex items-center gap-1.5">
@@ -96,7 +98,7 @@ export default async function PrintTicketPage({ params }: PageProps) {
         {/* Content Layout */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-zinc-200">
           
-          {/* Column 1 & 2: Visitor and B2B Details */}
+          {/* Column 1 & 2: Visitor and  Details */}
           <div className="md:col-span-2 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-primary-blue flex items-center gap-1.5">
               <User className="w-4 h-4" />
@@ -188,7 +190,7 @@ export default async function PrintTicketPage({ params }: PageProps) {
             Unauthorized replication or reuse of this pass is strictly prohibited.
           </p>
           <p className="mt-2 font-mono text-[9px]">
-            Security Audit Code: {ticket.id.slice(0, 8).toUpperCase()} / STARZS Security Operations
+            Security Audit Code: {ticket.id.slice(0, 8).toUpperCase()} / STARZS MARINE AND ENGINEERING LTD Security Operations
           </p>
         </div>
 

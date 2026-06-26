@@ -172,7 +172,7 @@ export default function ClientDashboard({
     };
   }, [clientId]);
 
-  // Sign out B2B client
+  // Sign out  client
   const handleSignOut = async () => {
     setIsSignOutLoading(true);
     try {
@@ -225,7 +225,7 @@ export default function ClientDashboard({
     }
 
     if (!requestingStaffName.trim()) {
-      setSubmitError("Please enter the requesting B2B staff name.");
+      setSubmitError("Please enter the requesting  staff name.");
       return;
     }
 
@@ -506,6 +506,7 @@ export default function ClientDashboard({
                 type="date"
                 value={expectedDate}
                 onChange={(e) => setExpectedDate(e.target.value)}
+                min={new Date().toLocaleDateString("en-CA")}
                 disabled={clientStatus === "restricted" || isSubmitting}
                 className="block w-full px-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue disabled:opacity-60"
                 required
@@ -1013,7 +1014,7 @@ export default function ClientDashboard({
                     <div className="px-4 py-3 flex items-start gap-3 text-sm">
                       <User className="w-4.5 h-4.5 text-zinc-400 mt-0.5 shrink-0" />
                       <div>
-                        <span className="text-[10px] text-zinc-400 block font-bold uppercase">Requesting B2B Staff</span>
+                        <span className="text-[10px] text-zinc-400 block font-bold uppercase">Requesting  Staff</span>
                         <span className="font-semibold text-zinc-800 text-xs">{selectedRequest.requesting_staff_name}</span>
                       </div>
                     </div>
@@ -1184,6 +1185,7 @@ export default function ClientDashboard({
                           type="date"
                           value={rescheduleDateInput}
                           onChange={(e) => setRescheduleDateInput(e.target.value)}
+                          min={new Date().toLocaleDateString("en-CA")}
                           disabled={isRescheduleLoading}
                           className="flex-1 px-3 py-2 bg-white border border-zinc-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-primary-blue"
                           required

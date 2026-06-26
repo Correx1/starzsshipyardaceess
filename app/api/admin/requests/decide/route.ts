@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     // 5. Gather notification recipients & signatures
     const domainUrl = req.nextUrl.origin;
     const clientInfo = request.clients;
-    const clientOrgName = clientInfo ? clientInfo.org_name : "B2B Client Partner";
+    const clientOrgName = clientInfo ? clientInfo.org_name : " Client Partner";
     
     // Fetch admin signature details from admin_settings
     let sigName = "";
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     
     // Smart Email Routing:
     // If requesting staff email is provided, send it to them.
-    // Otherwise, fallback to B2B client's default organization account email.
+    // Otherwise, fallback to  client's default organization account email.
     const staffEmail = request.requesting_staff_email?.trim()?.toLowerCase();
     if (staffEmail && staffEmail.includes("@")) {
       recipients.push(staffEmail);

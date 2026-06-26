@@ -1,5 +1,5 @@
 -- =========================================================================
--- Starz Access Control - B2B Client Portal Database Schema (UP-TO-DATE)
+-- Starz Access Control -  Client Portal Database Schema (UP-TO-DATE)
 -- Run this script in your Supabase SQL Editor to set up all tables, 
 -- triggers, and Row-Level Security (RLS) policies from scratch.
 -- =========================================================================
@@ -26,7 +26,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- -------------------------------------------------------------------------
--- 2. TABLE: clients (B2B Client Accounts)
+-- 2. TABLE: clients ( Client Accounts)
 -- -------------------------------------------------------------------------
 CREATE TABLE public.clients (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -46,7 +46,7 @@ BEFORE UPDATE ON public.clients
 FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- -------------------------------------------------------------------------
--- 3. TABLE: access_requests (Vast B2B Access Logs with Gate Audits)
+-- 3. TABLE: access_requests (Vast  Access Logs with Gate Audits)
 -- -------------------------------------------------------------------------
 CREATE TABLE public.access_requests (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -59,7 +59,7 @@ CREATE TABLE public.access_requests (
     expected_date date NOT NULL,
     status text DEFAULT 'pending'::text NOT NULL CHECK (status in ('pending', 'approved', 'denied', 'cancelled')),
     denial_reason text,
-    last_rescheduled_at timestamp with time zone, -- Timestamp of last rescheduling by B2B client
+    last_rescheduled_at timestamp with time zone, -- Timestamp of last rescheduling by  client
     entered_at timestamp with time zone, -- Gate check-in timestamp
     exited_at timestamp with time zone, -- Gate check-out timestamp
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,

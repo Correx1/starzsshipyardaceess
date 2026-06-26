@@ -28,7 +28,7 @@ async function inspectConstraints() {
   // If the user ran the database migration, but the relationship is not found, maybe they created the table first without it, and then schema.sql didn't update it because of "create table if not exists"?
   // AH!!!
   // "create table if not exists public.access_requests"
-  // If the table 'access_requests' ALREADY existed in their database from a PREVIOUS implementation or previous version of the app before B2B was added (e.g. from their first version), then "create table if not exists" will do NOTHING! It won't add the new 'client_id' column or the foreign key constraint if the table already existed!
+  // If the table 'access_requests' ALREADY existed in their database from a PREVIOUS implementation or previous version of the app before  was added (e.g. from their first version), then "create table if not exists" will do NOTHING! It won't add the new 'client_id' column or the foreign key constraint if the table already existed!
   // Wow, that is an incredibly common database migration trap! "create table if not exists" does not alter an existing table.
   // Let's verify if the 'client_id' column actually exists in the 'access_requests' table in their database!
   // In check_db.js, it queried 'count', which doesn't check specific columns.

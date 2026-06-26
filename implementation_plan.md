@@ -1,12 +1,12 @@
-# B2B Client Portal Facility Access System (Starz Access) - Implementation Plan
+# Client Portal Facility Access System (Starz Access) - Implementation Plan
 
-A professional, enterprise-grade B2B access management system designed to streamline facility entry, eliminate gate delays, and automate email ticket dispatches between clients, facility administrators (owners), and security gate personnel.
+A professional, enterprise-grade access management system designed to streamline facility entry, eliminate gate delays, and automate email ticket dispatches between clients, facility administrators (owners), and security gate personnel.
 
 ---
 
-## 🌟 The B2B Workflow & Core Features
+## 🌟 The Workflow & Core Features
 
-We are implementing a secure, closed-loop **B2B Client Portal** system with advanced security auditing:
+We are implementing a secure, closed-loop ** Client Portal** system with advanced security auditing:
 
 1. **Client Account & Status Management (Admin Dashboard)**:
    - The Owner (Admin) logs in to their dashboard and can create, view, and manage **Client Accounts** representing partner organizations (e.g., "Clautechs Industries").
@@ -35,9 +35,9 @@ We are implementing a secure, closed-loop **B2B Client Portal** system with adva
 
 4. **One-Time Use Tickets, Gate Auditing, & Offline PIN Fallback**:
    - **One-Time Expiration Logic**: A ticket is strictly valid for **one complete entry and exit cycle**. Once both check-in and check-out are logged, the ticket is permanently invalidated:
-     - *Check-In Pending* (No timestamps): Ticket is **Active & Valid** for entry.
-     - *Checked In* (`entered_at` set, `exited_at` null): The visitor is **Currently Inside**. Valid only for exit logging.
-     - *Checked Out* (Both timestamps set): The ticket is **Expired & Used**. Any subsequent scan shows a bold red warning: *"TICKET EXPIRED & ALREADY USED"*.
+     - _Check-In Pending_ (No timestamps): Ticket is **Active & Valid** for entry.
+     - _Checked In_ (`entered_at` set, `exited_at` null): The visitor is **Currently Inside**. Valid only for exit logging.
+     - _Checked Out_ (Both timestamps set): The ticket is **Expired & Used**. Any subsequent scan shows a bold red warning: _"TICKET EXPIRED & ALREADY USED"_.
    - **Gate Auditing**: When security scans the QR code, the verification portal displays **"Log Check-In"** or **"Log Check-Out"** buttons. Tapping these writes the exact UTC timestamps (`entered_at` and `exited_at`) directly to the database.
    - **Offline PIN Fallback**: For every request, the system generates a unique **6-digit Numeric PIN** (e.g., `921083`) alongside the long Ticket ID. If the driver's phone is dead or offline, the guard can simply type this 6-digit PIN into the verification portal to retrieve and log their entry.
    - **Print-Ready Ticket Layout**: Approved emails contain a link to a print-optimized route (`/ticket/[ticket_number]`). It uses CSS `@media print` rules to render a clean, high-contrast physical paper pass.
@@ -84,7 +84,9 @@ We are implementing a secure, closed-loop **B2B Client Portal** system with adva
 All tables feature both `created_at` and `updated_at` timestamps managed by automated Postgres triggers.
 
 ### 1. `clients`
-Stores B2B client details, hashed passwords, and statuses.
+
+Stores client details, hashed passwords, and statuses.
+
 ```sql
 create table public.clients (
     id uuid default gen_random_uuid() primary key,
@@ -100,7 +102,9 @@ create table public.clients (
 ```
 
 ### 2. `access_requests`
+
 Stores requests, resource payloads, gate logging timestamps, and the 6-digit backup PIN.
+
 ```sql
 create table public.access_requests (
     id uuid default gen_random_uuid() primary key,
@@ -122,7 +126,9 @@ create table public.access_requests (
 ```
 
 ### 3. `admin_settings`
+
 Stores system configuration including admin notification alert destinations and allowed resource categories.
+
 ```sql
 create table public.admin_settings (
     key text primary key,
@@ -139,6 +145,7 @@ create table public.admin_settings (
 To secure both portal roles, we will configure Next.js Edge Middleware to enforce strict routing separation:
 
 ### Cookie Configurations:
+
 - **Admin**: Cookie `admin_session`, contains `{ username: "admin" }`
 - **Client**: Cookie `client_session`, contains `{ id: "client-uuid", username: "client-username", org_name: "client-org", status: "client-status" }`
 
@@ -149,9 +156,10 @@ To secure both portal roles, we will configure Next.js Edge Middleware to enforc
 The design constraints are strictly maintained: Tailwind CSS v4, maximum 4px border-radius, solid high-contrast cards (no glassmorphism), deep corporate blue accents, and React Icons exclusively.
 
 ### Screen Map:
+
 1. **Admin Portal (`/dashboard`)**:
    - **Metrics Panel**: High-contrast widgets for active requests.
-   - **B2B Clients Manager Card**: A dedicated panel to add new clients, view client profiles, and manage their status via a dropdown (**Active**, **Suspended**, **Restricted**). Automatically hashes client passwords.
+   - ** Clients Manager Card**: A dedicated panel to add new clients, view client profiles, and manage their status via a dropdown (**Active**, **Suspended**, **Restricted**). Automatically hashes client passwords.
    - **Requests Board**: Real-time table showing all incoming requests from all clients. Clicking a request opens the Review Drawer.
    - **Review Drawer**: Symmetrical, rich drawer containing visitor profile, resource checklist, real-time gate check-in/out timestamps, QR code view, and one-click Approve/Deny buttons.
    - **Settings Panel**: Configure admin notification emails and manage allowed request categories.
@@ -180,42 +188,49 @@ The design constraints are strictly maintained: Tailwind CSS v4, maximum 4px bor
 ## 🛠️ Revised Step-by-Step Implementation Plan
 
 ### Phase 1: Database Migration & Environment Reconfig
-1. Draft and execute the new B2B database migration (`clients`, `access_requests`, `admin_settings`), including `pin_code` and check-in/out timestamps.
+
+1. Draft and execute the new database migration (`clients`, `access_requests`, `admin_settings`), including `pin_code` and check-in/out timestamps.
 2. Create the password hashing utility `/lib/crypto.ts` using Node's built-in `crypto` module (SHA-256 with random salt generation).
 3. Update `.env.local` to ensure Supabase and Resend keys are ready.
 
 ### Phase 2: Dual-Role Authentication & Middleware
+
 1. Update `middleware.ts` to implement the dual-role routing guard (protecting `/dashboard` for admins and `/client/dashboard` for clients), and enforce cookie deletion on `suspended` client accounts.
 2. Update `/lib/auth.ts` to support signing client session JWTs.
 3. Implement `/api/auth/client-login` and `/api/auth/client-logout` API endpoints.
 4. Build the Client Login page `/client/login`.
 
-### Phase 3: B2B Client Portal & Vast Resource Request Form
+### Phase 3: Client Portal & Vast Resource Request Form
+
 1. Build the client dashboard view `/client/dashboard`.
 2. Implement the single-page request form featuring the **Dynamic Item Builder** (adapts fields based on category selection: Staff, Machinery, Materials, and builds a list of requested resources in state).
 3. Connect submission to `/api/client/requests/submit` to generate a 6-digit PIN, save to the database, and alert the admin.
 4. Build the client request history table with real-time Supabase subscriptions. Clicking a row opens the Client Review Drawer.
 5. Implement the client additional notification settings panel.
 
-### Phase 4: Admin Dashboard B2B Extensions & Settings
-1. Update the Admin Dashboard `/dashboard` to include the **B2B Clients Manager** (an inline form to create new clients, a table of active client accounts, and a dropdown next to each to toggle statuses: Active, Suspended, Restricted connected to `/api/admin/clients`). It will hash passwords before database insertion.
+### Phase 4: Admin Dashboard Extensions & Settings
+
+1. Update the Admin Dashboard `/dashboard` to include the ** Clients Manager** (an inline form to create new clients, a table of active client accounts, and a dropdown next to each to toggle statuses: Active, Suspended, Restricted connected to `/api/admin/clients`). It will hash passwords before database insertion.
 2. Update the requests table to display which Client Organization submitted each request. Clicking a row opens the Admin Review Drawer.
 3. Update the Admin settings panel to manage admin notification alert emails and enable/disable allowed request categories (Staff, Machinery, Materials).
 4. Update the Review Drawer to render the detailed, structured resource checklist, check-in/out timestamps, and the active QR code.
 
 ### Phase 5: Resend Email Notification Engine
+
 1. Update `/api/client/requests/submit` to generate secure tickets, save requests, and dispatch a new submission email to the Admin.
 2. Update `/api/admin/requests/decide` to process decisions and dispatch multi-recipient HTML tickets (with QR codes, 6-digit PINs, and print links for approvals) to the driver, client, and client cc emails.
 3. Create the print-optimized ticket page `/ticket/[ticket_number]`.
 
 ### Phase 6: Security Verification & Gate Logging API
+
 1. Build the gate logging API routes `/api/admin/requests/check-in` and `/api/admin/requests/check-out` to write timestamps.
 2. Build the Security Verification Portal search page `/verify` (to look up by 6-digit PIN) and the ticket page `/verify/[ticket_number]` (to display details, check validity, and render "Log Check-In"/"Log Check-Out" buttons).
 3. Verify that once check-in and check-out are logged, the ticket displays as expired.
 
 ### Phase 7: E2E Verification & Polish
+
 1. Verify dual-role JWT cookie-based middleware guards, including the instant session invalidation of suspended clients.
-2. Verify B2B client status restrictions (suspension blocks login, restriction disables form submission).
-3. Verify B2B client creation, login, and resource request building.
+2. Verify client status restrictions (suspension blocks login, restriction disables form submission).
+3. Verify client creation, login, and resource request building.
 4. Verify multi-recipient Resend email dispatches.
 5. Verify QR code gate scanning, manual PIN lookup, and check-in/check-out logging.

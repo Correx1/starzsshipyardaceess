@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Fetch B2B client by username from Supabase
+    // 1. Fetch  client by username from Supabase
     const { data: client, error } = await supabaseAdmin
       .from("clients")
       .select("*")
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Sign the B2B Client JWT token
+    // 4. Sign the  Client JWT token
     const token = await signClientToken({
       id: client.id,
       username: client.username,
