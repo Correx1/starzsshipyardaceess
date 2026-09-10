@@ -65,7 +65,7 @@ export default function CardVerification({
       setCompanyRequests(data.requests || []);
     } catch (err: any) {
       console.error("Card verification error:", err);
-      setError(err.message || "Failed to verify card.");
+      setError(err.message || "error, please contact admin");
     } finally {
       setIsLoading(false);
     }
@@ -90,14 +90,12 @@ export default function CardVerification({
         {/* Header */}
         <div className="bg-zinc-950 px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#11035E] border border-blue-600/40 flex items-center justify-center text-blue-300">
-              <CreditCard className="w-4 h-4" />
-            </div>
+           
             <div>
-              <h2 className="text-xs font-black tracking-wider uppercase text-white">
-                Company Fleet Card Verification
+              <h2 className="text-xs font-black tracking-wider Capitalize text-white">
+                Company Card Verification
               </h2>
-              <span className="text-[10px] text-zinc-400 font-mono">STARZS SHIPYARD GATE TERMINAL</span>
+              <span className="text-[10px] text-zinc-400 font-mono">STARZS SHIPYARD</span>
             </div>
           </div>
           <div className="text-right">
@@ -118,10 +116,10 @@ export default function CardVerification({
                   <CreditCard className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Enter Card 4-Digit PIN
+                  Enter Card PIN
                 </h3>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Card PIN authentication is required to access company manifests.
+                  Card PIN authentication is required.
                 </p>
               </div>
 
@@ -134,7 +132,7 @@ export default function CardVerification({
 
               <div>
                 <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 text-center">
-                  4-Digit Card PIN
+                   Card PIN
                 </label>
                 <input
                   type="password"
@@ -164,7 +162,7 @@ export default function CardVerification({
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    Authenticate Card & Load Passes
+                    Authenticate Card
                   </>
                 )}
               </button>
@@ -197,7 +195,7 @@ export default function CardVerification({
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold uppercase text-zinc-300 tracking-wider flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-blue-400" />
-                    Today&apos;s Approved Passes ({companyRequests?.length || 0})
+                    Approved Company Passes ({companyRequests?.length || 0})
                   </h4>
                   <span className="text-[10px] text-zinc-500">Select pass to log gate entry/exit</span>
                 </div>

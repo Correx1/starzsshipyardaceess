@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     // 3. Verify PIN
     if (card.pin !== cleanPin) {
       return NextResponse.json({
-        error: "Incorrect 4-digit PIN for this card. Access denied.",
+        error: "INVALID PIN",
       }, { status: 401 });
     }
 
@@ -68,36 +68,22 @@ export async function POST(req: NextRequest) {
     });
     const todayStr = formatter.format(new Date()); // "YYYY-MM-DD"
 
-    // 5. Query approved access requests for this sister company for today
+    // 5. Query approved access requests for this sister company
     const { data: requests, error: reqError } = await supabaseAdmin
       .from("access_requests")
       .select(`
-        id,
-        ticket_number,
-        pin_code,
-        visitor_name,
-        visitor_phone,
-        visitor_email,
-        resources,
-        expected_date,
-        status,
-        denial_reason,
-        entered_at,
-        entered_by,
-        exited_at,
-        exited_by,
-        requesting_staff_name,
-        requesting_staff_email,
-        created_at
+        *,
+        clients (
+          org_name
+        )
       `)
       .eq("client_id", card.client_id)
-      .eq("expected_date", todayStr)
       .eq("status", "approved")
       .order("created_at", { ascending: false });
 
     if (reqError) {
       console.error("Error fetching card access requests:", reqError);
-      return NextResponse.json({ error: "Database error retrieving company trips." }, { status: 500 });
+      return NextResponse.json({ error: "ERROR, PLS CONTACT ADMIN" }, { status: 500 });
     }
 
     const clientOrgName = (card.clients as any)?.org_name || "Sister Company";
@@ -114,6 +100,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("Gate card verification error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred during card lookup." }, { status: 500 });
+    return NextResponse.json({ error: "ERROR, PLS CONTACT ADMIN" }, { status: 500 });
   }
 }
