@@ -1,15 +1,17 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  LogOut, Plus, X, User, Phone, Calendar, Loader2, CheckCircle2, XCircle, 
+  Plus, X, User, Phone, Calendar, Loader2, CheckCircle2, XCircle, 
   Search, Filter, Eye, Key, FileText, Printer, Activity, AlertTriangle, RotateCw, Mail,
   Download, FileSpreadsheet, CreditCard, Copy, Check, Lock, Unlock, EyeOff, Shield
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { exportToExcel, exportToCSV, ExportableRequest } from "@/lib/exportUtils";
+import { encodeTicketSlug } from "@/lib/slug";
 import DashboardHeader from "./DashboardHeader";
 
 
@@ -77,7 +79,7 @@ interface ClientDashboardProps {
 export default function ClientDashboard({
   clientId,
   clientOrgName,
-  clientUsername,
+  clientUsername: _clientUsername,
   clientStatus,
   initialRequests,
   allowedCategories,
@@ -146,6 +148,45 @@ export default function ClientDashboard({
       setIsRefreshing(false);
     }
   };
+
+  // Real-time Supabase Subscription for Client Requests
+  useEffect(() => {
+    const channelName = `client_reqs_${clientId}_${Math.random().toString(36).substring(2, 8)}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "access_requests",
+          filter: `client_id=eq.${clientId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newReq = payload.new as AccessRequest;
+            setRequests((prev) => [newReq, ...prev.filter((r) => r.id !== newReq.id)]);
+          } else if (payload.eventType === "UPDATE") {
+            const updatedReq = payload.new as AccessRequest;
+            setRequests((prev) =>
+              prev.map((req) => (req.id === updatedReq.id ? updatedReq : req))
+            );
+            setSelectedRequest((prev) =>
+              prev && prev.id === updatedReq.id ? updatedReq : prev
+            );
+          } else if (payload.eventType === "DELETE") {
+            const deletedId = (payload.old as { id: string }).id;
+            setRequests((prev) => prev.filter((req) => req.id !== deletedId));
+            setSelectedRequest((prev) => (prev && prev.id === deletedId ? null : prev));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clientId]);
 
   // Select a request and reset rescheduling states
   const handleSelectRequest = (req: AccessRequest | null) => {
@@ -249,7 +290,7 @@ export default function ClientDashboard({
   }, [clientId]);
 
   // Load and merge saved drivers and staff from database profiles & historical requests
-  const reloadProfiles = async () => {
+  const reloadProfiles = useCallback(async () => {
     try {
       const res = await fetch("/api/client/profiles");
       const data = await res.json();
@@ -260,11 +301,11 @@ export default function ClientDashboard({
     } catch (e) {
       console.error("Error loading profiles from database:", e);
     }
-  };
+  }, []);
 
   useEffect(() => {
     reloadProfiles();
-  }, [clientId, requests]);
+  }, [reloadProfiles, clientId]);
 
   // Handle Driver selection / autocomplete
   const handleSelectDriver = (nameInput: string) => {
@@ -1130,7 +1171,7 @@ export default function ClientDashboard({
                       <option value="all">All Logs</option>
                       <option value="pending">Pending</option>
                       <option value="approved">Approved</option>
-                      <option value="inside">Currently Inside</option>
+                      <option value="inside">Checked In (Inside Facility)</option>
                       <option value="expired">Expired (Used)</option>
                       <option value="denied">Declined</option>
                     </select>
@@ -1236,8 +1277,8 @@ export default function ClientDashboard({
                               </span>
                             )}
                             {req.entered_at !== null && req.exited_at === null && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 border border-blue-200 text-primary-blue rounded-sm font-bold animate-pulse">
-                                Inside
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 border border-blue-200 text-primary-blue rounded-sm font-bold">
+                                Checked In
                               </span>
                             )}
                             {req.entered_at !== null && req.exited_at !== null && (
@@ -1632,8 +1673,14 @@ export default function ClientDashboard({
 
       {/* CLIENT REQUEST DETAILS DRAWER (Symmetrical to Admin Side) */}
       {selectedRequest && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-50 flex items-center justify-end">
-          <div className="bg-white w-full max-w-lg h-full border-l border-zinc-200 flex flex-col shadow-2xl animate-slide-in">
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-50 flex items-center justify-end cursor-pointer"
+          onClick={() => handleSelectRequest(null)}
+        >
+          <div 
+            className="bg-white w-full max-w-lg h-full border-l border-zinc-200 flex flex-col shadow-2xl animate-slide-in cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {/* Drawer Header */}
             <div className="bg-primary-dark text-white px-6 py-4 flex items-center justify-between">
@@ -1681,7 +1728,7 @@ export default function ClientDashboard({
                   )}
                   {selectedRequest.entered_at !== null && selectedRequest.exited_at === null && (
                     <span className="text-primary-blue flex items-center gap-1.5 font-bold text-xs">
-                      <Activity className="w-3.5 h-3.5" /> Visitor Inside
+                      <Activity className="w-3.5 h-3.5" /> Checked In
                     </span>
                   )}
                   {selectedRequest.entered_at !== null && selectedRequest.exited_at !== null && (
@@ -1760,7 +1807,7 @@ export default function ClientDashboard({
                       </span>
                       {selectedRequest.entered_by && (
                         <span className="text-[10px] text-emerald-600 font-bold uppercase block mt-0.5">
-                          Authorized by: {selectedRequest.entered_by}
+                          Authorized by: {selectedRequest.entered_by.replace(/\s*\([^)]*\)/g, "").trim()}
                         </span>
                       )}
                     </div>
@@ -1773,7 +1820,7 @@ export default function ClientDashboard({
                       </span>
                       {selectedRequest.exited_by && (
                         <span className="text-[10px] text-rose-600 font-bold uppercase block mt-0.5">
-                          Authorized by: {selectedRequest.exited_by}
+                          Authorized by: {selectedRequest.exited_by.replace(/\s*\([^)]*\)/g, "").trim()}
                         </span>
                       )}
                     </div>
@@ -1821,7 +1868,7 @@ export default function ClientDashboard({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
-                      `${window.location.origin}/verify/${selectedRequest.ticket_number}`
+                      `${window.location.origin}/verify/${encodeTicketSlug(selectedRequest.ticket_number)}`
                     )}`}
                     alt="Access Ticket QR Code"
                     width="140"
@@ -1830,7 +1877,7 @@ export default function ClientDashboard({
                   />
                   <div className="flex gap-2.5 w-full">
                     <button
-                      onClick={() => handleCopyText(`${window.location.origin}/verify/${selectedRequest.ticket_number}`)}
+                      onClick={() => handleCopyText(`${window.location.origin}/verify/${encodeTicketSlug(selectedRequest.ticket_number)}`)}
                       className="flex-1 border border-zinc-300 hover:bg-zinc-50 text-xs font-bold py-2 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer"
                     >
                       {isCopied ? "Copied!" : "Copy Link"}

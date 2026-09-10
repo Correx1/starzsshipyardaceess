@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { exportToExcel, exportToCSV, ExportableRequest } from "@/lib/exportUtils";
+import { encodeTicketSlug } from "@/lib/slug";
 import DashboardHeader from "./DashboardHeader";
 import FleetGateCard from "./FleetGateCard";
 
@@ -134,25 +135,15 @@ export default function AdminDashboard({
   const router = useRouter();
 
 
-  // Helper to generate a unique guard PIN code: 4 numbers and 2 letters at the ending (e.g. 5829TY)
+  // Helper to generate a unique guard PIN code: 4-digit numeric PIN (e.g. 5829)
   const generateGuardCode = (existingGuards: SecurityGuard[]) => {
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const numbers = "0123456789";
     let code = "";
     let isUnique = false;
     let attempts = 0;
 
     while (!isUnique && attempts < 1000) {
-      let numPart = "";
-      for (let i = 0; i < 4; i++) {
-        numPart += numbers.charAt(Math.floor(Math.random() * numbers.length));
-      }
-      let letPart = "";
-      for (let i = 0; i < 2; i++) {
-        letPart += letters.charAt(Math.floor(Math.random() * letters.length));
-      }
-      code = numPart + letPart;
-      isUnique = !existingGuards.some((g) => (g.guard_code || g.code || "").toUpperCase() === code.toUpperCase());
+      code = Math.floor(1000 + Math.random() * 9000).toString();
+      isUnique = !existingGuards.some((g) => (g.guard_code || g.code || "").trim() === code);
       attempts++;
     }
     return code;
@@ -593,8 +584,11 @@ export default function AdminDashboard({
 
   // Real-time Supabase Subscription for Access Requests
   useEffect(() => {
+    const reqChannelName = `admin_reqs_${Math.random().toString(36).substring(2, 8)}`;
+    const cardsChannelName = `admin_cards_${Math.random().toString(36).substring(2, 8)}`;
+
     const subscription = supabase
-      .channel("admin_access_requests")
+      .channel(reqChannelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "access_requests" },
@@ -673,7 +667,7 @@ export default function AdminDashboard({
       .subscribe();
 
     const cardsSub = supabase
-      .channel("admin_company_cards")
+      .channel(cardsChannelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "company_cards" },
@@ -1457,7 +1451,7 @@ export default function AdminDashboard({
                     value={guardCode}
                     readOnly
                     className="block w-28 px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded text-xs text-zinc-500 font-mono font-bold cursor-not-allowed select-all"
-                    title="This PIN code is automatically generated for security and uniqueness (4 numbers and 2 letters at the ending)."
+                    title="This PIN code is automatically generated for security (4-digit numeric PIN)."
                   />
                   <button
                     type="button"
@@ -2053,7 +2047,7 @@ export default function AdminDashboard({
             {/* Currently Inside */}
             <div className="bg-white border border-zinc-200 rounded p-4 shadow-sm flex items-center justify-between">
               <div>
-                <span className="text-zinc-400 text-[9px] font-extrabold uppercase tracking-wider block">Inside</span>
+                <span className="text-zinc-400 text-[9px] font-extrabold uppercase tracking-wider block">Checked In</span>
                 <span className="text-2xl font-black text-primary-blue mt-1 block">{metricsInside}</span>
               </div>
               <div className="p-2 bg-blue-50 rounded text-primary-blue shrink-0">
@@ -2132,7 +2126,7 @@ export default function AdminDashboard({
                     <option value="all">All Request Lifecycles</option>
                     <option value="pending">Pending Admin Decision</option>
                     <option value="approved">Approved & Awaiting Gate</option>
-                    <option value="inside">Currently Inside Facility</option>
+                    <option value="inside">Checked In (Inside Facility)</option>
                     <option value="expired">Expired (Checked Out)</option>
                     <option value="denied">Declined</option>
                   </select>
@@ -2229,7 +2223,7 @@ export default function AdminDashboard({
                           )}
                           {req.entered_at !== null && req.exited_at === null && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 border border-blue-200 text-primary-blue rounded-sm font-bold">
-                              Inside
+                              Checked In
                             </span>
                           )}
                           {req.entered_at !== null && req.exited_at !== null && (
@@ -2308,8 +2302,19 @@ export default function AdminDashboard({
 
       {/* DETAIL MODAL DRAWER */}
       {selectedRequest && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-50 flex items-center justify-end">
-          <div className="bg-white w-full max-w-lg h-full border-l border-zinc-200 flex flex-col shadow-2xl animate-slide-in">
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-50 flex items-center justify-end cursor-pointer"
+          onClick={() => {
+            setSelectedRequest(null);
+            setShowDenyReasonForm(false);
+            setDenialReasonInput("");
+            setDecisionError(null);
+          }}
+        >
+          <div 
+            className="bg-white w-full max-w-lg h-full border-l border-zinc-200 flex flex-col shadow-2xl animate-slide-in cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="bg-primary-dark text-white px-6 py-4 flex items-center justify-between shrink-0">
               <div>
@@ -2377,7 +2382,7 @@ export default function AdminDashboard({
                   )}
                   {selectedRequest.entered_at !== null && selectedRequest.exited_at === null && (
                     <span className="text-primary-blue flex items-center gap-1.5 text-xs font-bold">
-                      <Activity className="w-3.5 h-3.5" /> Inside Compound
+                      <Activity className="w-3.5 h-3.5" /> Checked In
                     </span>
                   )}
                   {selectedRequest.entered_at !== null && selectedRequest.exited_at !== null && (
@@ -2468,7 +2473,7 @@ export default function AdminDashboard({
                       </span>
                       {selectedRequest.entered_by && (
                         <span className="text-[10px] text-emerald-600 font-bold uppercase block mt-0.5">
-                          Authorized by: {selectedRequest.entered_by}
+                          Authorized by: {selectedRequest.entered_by.replace(/\s*\([^)]*\)/g, "").trim()}
                         </span>
                       )}
                     </div>
@@ -2481,7 +2486,7 @@ export default function AdminDashboard({
                       </span>
                       {selectedRequest.exited_by && (
                         <span className="text-[10px] text-rose-600 font-bold uppercase block mt-0.5">
-                          Authorized by: {selectedRequest.exited_by}
+                          Authorized by: {selectedRequest.exited_by.replace(/\s*\([^)]*\)/g, "").trim()}
                         </span>
                       )}
                     </div>
@@ -2529,7 +2534,7 @@ export default function AdminDashboard({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
-                      `${window.location.origin}/verify/${selectedRequest.ticket_number}`
+                      `${window.location.origin}/verify/${encodeTicketSlug(selectedRequest.ticket_number)}`
                     )}`}
                     alt="Access Ticket QR Code"
                     width="140"
@@ -2538,7 +2543,7 @@ export default function AdminDashboard({
                   />
                   <div className="flex gap-2.5 w-full">
                     <button
-                      onClick={() => handleCopyText(`${window.location.origin}/verify/${selectedRequest.ticket_number}`)}
+                      onClick={() => handleCopyText(`${window.location.origin}/verify/${encodeTicketSlug(selectedRequest.ticket_number)}`)}
                       className="flex-1 border border-zinc-300 hover:bg-zinc-50 text-xs font-bold py-2 rounded flex items-center justify-center gap-1 transition-colors cursor-pointer"
                     >
                       {isCopied ? "Copied!" : "Copy Link"}
@@ -2730,7 +2735,7 @@ export default function AdminDashboard({
                     <option value="all">All Statuses</option>
                     <option value="pending">Pending Only</option>
                     <option value="approved">Approved / Awaiting Gate</option>
-                    <option value="inside">Currently Inside Facility</option>
+                    <option value="inside">Checked In (Inside Facility)</option>
                     <option value="expired">Expired (Checked Out)</option>
                     <option value="denied">Declined</option>
                   </select>

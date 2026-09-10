@@ -1,5 +1,6 @@
 import React from "react";
 import { supabaseAdmin } from "@/lib/supabase";
+import { decodeTicketSlug } from "@/lib/slug";
 import TicketVerification from "@/components/TicketVerification";
 import { ShieldAlert } from "lucide-react";
 
@@ -17,8 +18,9 @@ export default async function TicketVerificationPage({ params }: PageProps) {
   let errorMsg = null;
 
   const rawParam = decodeURIComponent(ticket_number).trim();
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawParam);
-  const isPin = /^\d{6}$/.test(rawParam);
+  const decodedParam = decodeTicketSlug(rawParam);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedParam);
+  const isPin = /^\d{6}$/.test(decodedParam);
 
   try {
     let query = supabaseAdmin
@@ -31,11 +33,11 @@ export default async function TicketVerificationPage({ params }: PageProps) {
       `);
 
     if (isPin) {
-      query = query.eq("pin_code", rawParam);
+      query = query.eq("pin_code", decodedParam);
     } else if (isUuid) {
-      query = query.or(`ticket_number.ilike.${rawParam},id.eq.${rawParam}`);
+      query = query.or(`ticket_number.ilike.${decodedParam},id.eq.${decodedParam}`);
     } else {
-      query = query.ilike("ticket_number", rawParam);
+      query = query.or(`ticket_number.ilike.${decodedParam},ticket_number.ilike.${rawParam}`);
     }
 
     const { data, error } = await query.limit(1).single();

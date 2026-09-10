@@ -1,3 +1,5 @@
+import { encodeTicketSlug } from "./slug";
+
 /**
  * Generates highly professional HTML email templates for Starzs Marine and Engineering Ltd (SMEL) Access Control.
  * Fully optimized for  Client requests containing requesting staff details and resource checklists.
@@ -74,7 +76,7 @@ const formatSignatureName = (name: string): string => {
  */
 export function getApprovedEmailTemplate(data: ApprovedEmailData): string {
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-    `${data.domainUrl}/verify/${data.ticketNumber}`
+    `${data.domainUrl}/verify/${encodeTicketSlug(data.ticketNumber)}`
   )}`;
 
   const resourcesHtml = data.resources

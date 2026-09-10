@@ -2,14 +2,20 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
-import { useRouter } from "next/navigation";
 import { Search, Loader2, AlertTriangle, Camera, ArrowLeft, Key, RefreshCw, Zap, ZapOff } from "lucide-react";
 import Link from "next/link";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import TicketVerification from "@/components/TicketVerification";
+import CardVerification from "@/components/CardVerification";
 
 function VerifySearchContent() {
-  const router = useRouter();
-  
+  // Active in-page verified ticket state (keeps URL strictly /verify)
+  const [verifiedTicket, setVerifiedTicket] = useState<any | null>(null);
+  const [verifiedOrgName, setVerifiedOrgName] = useState<string>("Partner Client");
+
+  // Active Company Card state
+  const [activeCardNumber, setActiveCardNumber] = useState<string | null>(null);
+
   // Mode: "scanner" by default (straight in the scanner on opening), or "manual"
   const [mode, setMode] = useState<"scanner" | "manual">("scanner");
   
@@ -20,6 +26,7 @@ function VerifySearchContent() {
 
   // Scanner State
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isStartingCamera, setIsStartingCamera] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>("");
@@ -27,6 +34,7 @@ function VerifySearchContent() {
   const [hasTorch, setHasTorch] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isMountedRef = useRef(true);
   const readerElementId = "inline-gate-qr-reader";
 
   // Audio feedback on scan
@@ -54,24 +62,6 @@ function VerifySearchContent() {
     }
   }, []);
 
-  const handleScanText = useCallback((decodedText: string) => {
-    const trimmed = decodedText.trim();
-    if (!trimmed) return;
-
-    playScanChime();
-
-    // Check if URL
-    if (trimmed.includes("/verify/")) {
-      const match = trimmed.match(/\/verify\/([^/?#\s]+)/);
-      if (match && match[1]) {
-        router.push(`/verify/${encodeURIComponent(match[1])}`);
-        return;
-      }
-    }
-
-    router.push(`/verify/${encodeURIComponent(trimmed)}`);
-  }, [playScanChime, router]);
-
   // Stop scanner safely
   const stopCamera = useCallback(async () => {
     if (scannerRef.current) {
@@ -79,36 +69,131 @@ function VerifySearchContent() {
         if (scannerRef.current.isScanning) {
           await scannerRef.current.stop();
         }
+        await scannerRef.current.clear();
       } catch (err) {
         console.warn("Error stopping camera scanner:", err);
       }
+      scannerRef.current = null;
     }
-    setIsCameraActive(false);
-    setTorchOn(false);
+    if (isMountedRef.current) {
+      setIsCameraActive(false);
+      setIsStartingCamera(false);
+      setTorchOn(false);
+    }
   }, []);
+
+  // Query and open ticket in-page
+  const openTicketVerification = useCallback(async (queryParam: string) => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/verify/ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: queryParam }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "No matching entry pass found.");
+      }
+
+      await stopCamera();
+      setVerifiedOrgName(data.clientOrgName || "Partner Client");
+      setVerifiedTicket(data.ticket);
+    } catch (err: any) {
+      console.error("Lookup error:", err);
+      setError(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [stopCamera]);
+
+  const handleScanText = useCallback((decodedText: string) => {
+    const trimmed = decodedText.trim();
+    if (!trimmed) return;
+
+    playScanChime();
+
+    // 1. Check if Card format (URL or raw card number)
+    if (trimmed.includes("card=")) {
+      const match = trimmed.match(/card=([^&#\s]+)/);
+      if (match && match[1]) {
+        stopCamera();
+        setActiveCardNumber(decodeURIComponent(match[1]).toUpperCase());
+        return;
+      }
+    }
+
+    if (/^CRD-[A-Z0-9-]+$/i.test(trimmed) || trimmed.toUpperCase().startsWith("CRD-")) {
+      stopCamera();
+      setActiveCardNumber(trimmed.toUpperCase());
+      return;
+    }
+
+    // 2. Check if Ticket URL containing /verify/
+    let queryValue = trimmed;
+    if (trimmed.includes("/verify/")) {
+      const match = trimmed.match(/\/verify\/([^/?#\s]+)/);
+      if (match && match[1]) {
+        queryValue = decodeURIComponent(match[1]);
+      }
+    }
+
+    openTicketVerification(queryValue);
+  }, [openTicketVerification, playScanChime, stopCamera]);
 
   // Start scanner
   const startCamera = useCallback(async (cameraId?: string) => {
+    if (!isMountedRef.current || verifiedTicket) return;
     setCameraError(null);
+    setIsStartingCamera(true);
 
     try {
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode(readerElementId);
+      const container = document.getElementById(readerElementId);
+      if (!container) {
+        setIsStartingCamera(false);
+        return;
       }
 
-      if (scannerRef.current.isScanning) {
-        await scannerRef.current.stop();
+      if (scannerRef.current) {
+        try {
+          if (scannerRef.current.isScanning) {
+            await scannerRef.current.stop();
+          }
+          await scannerRef.current.clear();
+        } catch {
+          // ignore cleanup errors
+        }
+        scannerRef.current = null;
       }
 
-      const camConfig = cameraId
-        ? cameraId
+      const html5QrCode = new Html5Qrcode(readerElementId, {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false,
+      });
+      scannerRef.current = html5QrCode;
+
+      const cameraConfig = cameraId
+        ? { deviceId: { exact: cameraId } }
         : { facingMode: "environment" };
 
-      await scannerRef.current.start(
-        camConfig,
+      const qrboxFunction = (viewfinderWidth: number, viewfinderHeight: number) => {
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        const qrboxSize = Math.floor(minEdge * 0.72);
+        return {
+          width: Math.max(qrboxSize, 180),
+          height: Math.max(qrboxSize, 180),
+        };
+      };
+
+      await html5QrCode.start(
+        cameraConfig,
         {
           fps: 15,
-          qrbox: { width: 230, height: 230 },
+          qrbox: qrboxFunction,
           aspectRatio: 1.0,
         },
         (decodedText) => {
@@ -119,59 +204,71 @@ function VerifySearchContent() {
         }
       );
 
-      setIsCameraActive(true);
+      if (isMountedRef.current) {
+        setIsCameraActive(true);
+        setIsStartingCamera(false);
 
-      // Check for torch capability
-      try {
-        const capabilities = scannerRef.current.getRunningTrackCapabilities();
-        setHasTorch(Boolean(capabilities && (capabilities as any).torch));
-      } catch {
-        setHasTorch(false);
+        try {
+          const capabilities = html5QrCode.getRunningTrackCapabilities();
+          setHasTorch(Boolean(capabilities && (capabilities as any).torch));
+        } catch {
+          setHasTorch(false);
+        }
       }
     } catch (err: any) {
       console.error("Camera start error:", err);
-      setCameraError(
-        err.name === "NotAllowedError"
-          ? "Camera permission denied. Please allow camera access in browser settings or enter PIN below."
-          : "Unable to start camera scanner. Please enter PIN below."
-      );
-      setIsCameraActive(false);
+      if (isMountedRef.current) {
+        setIsCameraActive(false);
+        setIsStartingCamera(false);
+
+        setCameraError(
+          err.name === "NotAllowedError" || err.name === "PermissionDeniedError"
+            ? "Camera permission denied. Please allow camera permissions in browser or enter 6-digit PIN below."
+            : "Camera scanner unavailable on this device. Please enter 6-digit PIN below."
+        );
+      }
     }
-  }, [handleScanText]);
+  }, [handleScanText, verifiedTicket]);
 
-  // Initialize camera list and start on mount if in scanner mode
+  // Initialize camera list and start on mount if in scanner mode and no ticket is being viewed
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
 
-    if (mode === "scanner") {
-      Html5Qrcode.getCameras()
-        .then((devices) => {
-          if (!isMounted) return;
-          if (devices && devices.length > 0) {
-            setCameras(devices);
-            // Default to back camera on mobile
-            const backCam = devices.find((d) =>
-              /back|rear|environment/i.test(d.label)
-            );
-            const selected = backCam ? backCam.id : devices[0].id;
-            setSelectedCameraId(selected);
-            startCamera(selected);
-          } else {
-            startCamera();
-          }
-        })
-        .catch(() => {
-          if (isMounted) startCamera();
-        });
+    if (mode === "scanner" && !verifiedTicket) {
+      const timer = setTimeout(() => {
+        Html5Qrcode.getCameras()
+          .then((devices) => {
+            if (!isMountedRef.current) return;
+            if (devices && devices.length > 0) {
+              setCameras(devices);
+              const backCam = devices.find((d) =>
+                /back|rear|environment/i.test(d.label)
+              );
+              const selected = backCam ? backCam.id : devices[0].id;
+              setSelectedCameraId(selected);
+              startCamera(selected);
+            } else {
+              startCamera();
+            }
+          })
+          .catch(() => {
+            if (isMountedRef.current) startCamera();
+          });
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        stopCamera();
+      };
     } else {
       stopCamera();
     }
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
       stopCamera();
     };
-  }, [mode, startCamera, stopCamera]);
+  }, [mode, startCamera, stopCamera, verifiedTicket]);
 
   // Toggle Torch
   const toggleTorch = async () => {
@@ -199,36 +296,73 @@ function VerifySearchContent() {
   // Handle Manual PIN / Ticket Search
   const handleManualSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
     const cleanInput = ticketInput.trim();
     if (!cleanInput) return;
 
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/verify/ticket", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: cleanInput }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "No matching entry pass found.");
-      }
-
-      router.push(`/verify/${encodeURIComponent(data.ticket_number)}`);
-    } catch (err: any) {
-      console.error("Lookup error:", err);
-      setError(err.message || "An unexpected error occurred.");
-      setIsLoading(false);
+    if (/^CRD-[A-Z0-9-]+$/i.test(cleanInput) || cleanInput.toUpperCase().startsWith("CRD-")) {
+      await stopCamera();
+      setActiveCardNumber(cleanInput.toUpperCase());
+      return;
     }
+
+    await openTicketVerification(cleanInput);
   };
+
+  // If a ticket has been scanned/verified, render inspection view directly in-page without URL change!
+  if (verifiedTicket) {
+    return (
+      <TicketVerification
+        initialTicket={verifiedTicket}
+        clientOrgName={verifiedOrgName}
+        onBack={() => {
+          setVerifiedTicket(null);
+          setTicketInput("");
+          setError(null);
+          if (!activeCardNumber) {
+            setMode("scanner");
+          }
+        }}
+      />
+    );
+  }
+
+  // If a Company Fleet Card is being verified
+  if (activeCardNumber) {
+    return (
+      <CardVerification
+        initialCardNumber={activeCardNumber}
+        onSelectTicket={(ticket, orgName) => {
+          setVerifiedOrgName(orgName);
+          setVerifiedTicket(ticket);
+        }}
+        onBack={() => {
+          setActiveCardNumber(null);
+          setTicketInput("");
+          setError(null);
+          setMode("scanner");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-zinc-100 flex flex-col justify-between selection:bg-primary-blue selection:text-white">
+      <style jsx global>{`
+        #inline-gate-qr-reader {
+          border: none !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+        #inline-gate-qr-reader video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          border-radius: 0.75rem;
+        }
+        #inline-gate-qr-reader__scan_region {
+          min-height: 100% !important;
+        }
+      `}</style>
       
       {/* Top Header - Just Big Logo with Left Margin & Simple Back Link */}
       <div className="w-full pt-6 sm:pt-8 px-6 sm:px-12 flex items-center justify-between">
@@ -260,11 +394,21 @@ function VerifySearchContent() {
               <div className="relative overflow-hidden rounded-xl bg-black border border-zinc-700/80 aspect-square flex items-center justify-center">
                 
                 {/* HTML5 QR Scanner Target Container */}
-                <div id={readerElementId} className="w-full h-full" />
+                <div id={readerElementId} className="w-full h-full flex items-center justify-center" />
+
+                {/* Starting / Loading Overlay */}
+                {(isStartingCamera || isLoading) && !cameraError && (
+                  <div className="absolute inset-0 bg-zinc-950 flex flex-col items-center justify-center space-y-2 z-10">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    <span className="text-xs font-mono text-zinc-400">
+                      {isLoading ? "Verifying Access Pass..." : "Initializing Scanner..."}
+                    </span>
+                  </div>
+                )}
 
                 {/* Live Aim / Scanner Target Overlay */}
-                {isCameraActive && (
-                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
+                {isCameraActive && !isLoading && (
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6 z-10">
                     <div className="w-56 h-56 border-2 border-emerald-400/80 rounded-lg relative shadow-[0_0_15px_rgba(52,211,153,0.3)]">
                       {/* Corner Accents */}
                       <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-emerald-300"></div>
@@ -283,7 +427,7 @@ function VerifySearchContent() {
 
                 {/* Controls Overlay (Torch / Switch Camera) */}
                 {isCameraActive && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
                     {hasTorch && (
                       <button
                         type="button"
@@ -313,16 +457,20 @@ function VerifySearchContent() {
                 )}
 
                 {/* Error / Loading State */}
-                {cameraError && (
-                  <div className="absolute inset-0 bg-zinc-950 p-6 flex flex-col items-center justify-center text-center space-y-3">
+                {(cameraError || error) && (
+                  <div className="absolute inset-0 bg-zinc-950 p-6 flex flex-col items-center justify-center text-center space-y-3 z-30">
                     <AlertTriangle className="w-8 h-8 text-amber-400" />
-                    <p className="text-xs text-zinc-300 max-w-xs leading-relaxed">{cameraError}</p>
+                    <p className="text-xs text-zinc-300 max-w-xs leading-relaxed">{error || cameraError}</p>
                     <button
                       type="button"
-                      onClick={() => startCamera(selectedCameraId)}
-                      className="text-xs text-blue-400 hover:text-blue-300 underline font-bold"
+                      onClick={() => {
+                        setError(null);
+                        setCameraError(null);
+                        startCamera(selectedCameraId);
+                      }}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline font-bold cursor-pointer"
                     >
-                      Retry Camera
+                      Retry Scanner
                     </button>
                   </div>
                 )}
@@ -338,7 +486,7 @@ function VerifySearchContent() {
                 className="w-full bg-[#11035E] hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-blue-700/50 shadow-md text-xs sm:text-sm cursor-pointer"
               >
                 <Key className="w-4 h-4 text-amber-400" />
-                Or Enter Ticket ID / PIN
+                Or Enter 6-Digit PIN / Ticket ID
               </button>
             </div>
           )}

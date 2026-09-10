@@ -4,16 +4,10 @@ import { verifyClientToken } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/resend";
 
+import { generateSecureTicketNumber } from "@/lib/ticket";
+
 function generateTicketNumber(): string {
-  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const alphaNum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let part1 = "";
-  let part2 = "";
-  for (let i = 0; i < 8; i++) {
-    part1 += alpha.charAt(Math.floor(Math.random() * alpha.length));
-    part2 += alphaNum.charAt(Math.floor(Math.random() * alphaNum.length));
-  }
-  return `STYD.${part1}-${part2}`;
+  return generateSecureTicketNumber();
 }
 
 function generatePinCode(): string {

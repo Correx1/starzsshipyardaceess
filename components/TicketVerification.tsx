@@ -38,15 +38,23 @@ interface TicketData {
 interface TicketVerificationProps {
   initialTicket: TicketData;
   clientOrgName: string;
+  onBack?: () => void;
 }
 
-export default function TicketVerification({ initialTicket, clientOrgName }: TicketVerificationProps) {
+export default function TicketVerification({ initialTicket, clientOrgName, onBack }: TicketVerificationProps) {
   const router = useRouter();
   const [ticket, setTicket] = useState<TicketData>(initialTicket);
   const [isLoading, setIsLoading] = useState(false);
   const [guardCode, setGuardCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Mask address bar URL to clean /verify
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && window.location.pathname !== "/verify") {
+      window.history.replaceState(null, "", "/verify");
+    }
+  }, []);
 
   // Determine ticket lifecycle status
   const isPending = ticket.status === "pending";
@@ -96,7 +104,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
     setSuccessMsg(null);
 
     try {
-      const response = await fetch("/api/admin/requests/check-in", {
+      const response = await fetch("/api/verify/check-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ request_id: ticket.id, guard_code: guardCode.trim() }),
@@ -106,7 +114,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
       if (!response.ok) throw new Error(data.error);
 
       setTicket(data.request);
-      setSuccessMsg("Ingress Authorized: Check-in timestamp and security officer code logged.");
+      setSuccessMsg("Check-In Authorized: Entry timestamp and security officer code logged.");
       playFeedbackSound("success");
       setGuardCode("");
     } catch (err: any) {
@@ -121,7 +129,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
   // Handle Check-Out Action
   const handleCheckOut = async () => {
     if (!guardCode.trim()) {
-      setError("Please enter your Security Guard Authorization Code.");
+      setError("Please enter your Security Guard Code.");
       return;
     }
     setIsLoading(true);
@@ -129,7 +137,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
     setSuccessMsg(null);
 
     try {
-      const response = await fetch("/api/admin/requests/check-out", {
+      const response = await fetch("/api/verify/check-out", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ request_id: ticket.id, guard_code: guardCode.trim() }),
@@ -139,7 +147,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
       if (!response.ok) throw new Error(data.error);
 
       setTicket(data.request);
-      setSuccessMsg("Egress Completed: Check-out timestamp recorded. Pass lifecycle finished.");
+      setSuccessMsg("Check-Out Completed: Exit timestamp recorded. Pass lifecycle finished.");
       playFeedbackSound("success");
       setGuardCode("");
     } catch (err: any) {
@@ -154,22 +162,20 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
   return (
     <div className="min-h-screen bg-[#0d1117] text-zinc-100 flex flex-col items-center justify-center p-4 sm:p-6 print:bg-white print:p-0">
       
-      {/* Top Navigation Bar (Hidden on Print) */}
+      {/* Top Navigation Bar */}
       <div className="w-full max-w-xl mb-3 flex items-center justify-between print:hidden">
         <button
-          onClick={() => router.push("/verify")}
+          onClick={() => {
+            if (onBack) {
+              onBack();
+            } else {
+              router.push("/verify");
+            }
+          }}
           className="flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Security Terminal</span>
-        </button>
-
-        <button
-          onClick={() => window.print()}
-          className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded cursor-pointer"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          <span>Print Manifest</span>
         </button>
       </div>
 
@@ -189,12 +195,6 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
               <span className="text-[10px] text-zinc-400 font-mono">STARZS SHIPYARD PORT HARCOURT</span>
             </div>
           </div>
-          
-          <div className="text-right">
-            <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest block">
-              {ticket.ticket_number}
-            </span>
-          </div>
         </div>
 
         {/* Dynamic Lifecycle Status Banner */}
@@ -206,9 +206,6 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
             <h2 className="text-sm font-black text-rose-400 uppercase tracking-wider">
               TICKET EXPIRED & ALREADY USED
             </h2>
-            <p className="text-zinc-400 text-xs mt-0.5">
-              This pass has completed both ingress and egress logs. Access closed.
-            </p>
           </div>
         ) : isCheckedIn ? (
           <div className="bg-zinc-950 border-b border-amber-900/60 p-4 text-center">
@@ -228,11 +225,8 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <h2 className="text-sm font-black text-emerald-300 uppercase tracking-wider">
-              VERIFIED PASS &bull; APPROVED FOR INGRESS
+              VERIFIED PASS &bull; APPROVED FOR ACCESS IN
             </h2>
-            <p className="text-zinc-400 text-xs mt-0.5">
-              Manifest confirmed by administration. Authorize entry upon driver ID verification.
-            </p>
           </div>
         ) : isCancelled ? (
           <div className="bg-zinc-950 border-b border-rose-900/60 p-4 text-center">
@@ -243,7 +237,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
               ACCESS CANCELLED / REVOKED
             </h2>
             <p className="text-zinc-400 text-xs mt-0.5">
-              This pass was cancelled by the requesting partner client. Ingress prohibited.
+              This pass was cancelled by the requesting partner client. Entry prohibited.
             </p>
           </div>
         ) : isDenied ? (
@@ -267,7 +261,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
               PENDING ADMIN APPROVAL
             </h2>
             <p className="text-zinc-400 text-xs mt-0.5">
-              Awaiting administration approval before gate ingress can be granted.
+              Awaiting administration approval before gate entry can be granted.
             </p>
           </div>
         )}
@@ -289,7 +283,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
           <div className="grid grid-cols-2 gap-3 bg-zinc-950 p-3.5 rounded border border-zinc-800">
             <div>
               <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-0.5">
-                Pass Number
+                Ticket ID
               </span>
               <span className="font-mono text-xs font-black text-white tracking-wider truncate block">
                 {ticket.ticket_number}
@@ -297,7 +291,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
             </div>
             <div>
               <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-0.5">
-                Security PIN
+                Ticket Code
               </span>
               <span className="font-mono text-xs font-black text-amber-400 tracking-widest block">
                 {ticket.pin_code}
@@ -349,7 +343,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
           <div className="space-y-2">
             <h3 className="text-xs font-bold uppercase text-zinc-300 tracking-wider flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5 text-blue-400" />
-              Declared Cargo & Resources
+              ITEMS
             </h3>
 
             <div className="bg-zinc-950 border border-zinc-800 rounded p-3">
@@ -379,7 +373,7 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-zinc-500 italic">No cargo or equipment items declared.</p>
+                <p className="text-xs text-zinc-500 italic">No items declared.</p>
               )}
             </div>
           </div>
@@ -395,20 +389,20 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
               <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
                 <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-1">Check-In Timestamp</span>
                 <span className="font-mono text-xs font-bold text-zinc-200 block">
-                  {ticket.entered_at ? new Date(ticket.entered_at).toLocaleString() : "Pending Ingress"}
+                  {ticket.entered_at ? new Date(ticket.entered_at).toLocaleString() : "Pending Check-In"}
                 </span>
                 {ticket.entered_by && (
-                  <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">Guard ID: {ticket.entered_by}</span>
+                  <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">Authorized by: {ticket.entered_by}</span>
                 )}
               </div>
 
               <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
                 <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-1">Check-Out Timestamp</span>
                 <span className="font-mono text-xs font-bold text-zinc-200 block">
-                  {ticket.exited_at ? new Date(ticket.exited_at).toLocaleString() : "Pending Egress"}
+                  {ticket.exited_at ? new Date(ticket.exited_at).toLocaleString() : "Pending Check-Out"}
                 </span>
                 {ticket.exited_by && (
-                  <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">Guard ID: {ticket.exited_by}</span>
+                  <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">Authorized by: {ticket.exited_by}</span>
                 )}
               </div>
             </div>
@@ -435,15 +429,17 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
               {/* Guard Authorization Code */}
               <div>
                 <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
-                  Security Officer Authorization Code (Required)
+                  Security Officer Guard Code (Required)
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter your security guard code"
+                  maxLength={6}
+                  inputMode="numeric"
+                  placeholder="Enter Guard Code"
                   value={guardCode}
                   onChange={(e) => setGuardCode(e.target.value)}
                   disabled={isLoading}
-                  className="block w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded text-xs placeholder:text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 font-mono uppercase"
+                  className="block w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded text-xs placeholder:text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 font-mono tracking-widest text-center font-bold"
                 />
               </div>
 
@@ -456,12 +452,12 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Logging Ingress...
+                      Logging Check-In...
                     </>
                   ) : (
                     <>
                       <ShieldCheck className="w-4 h-4" />
-                      Confirm Ingress (Grant Access)
+                      Confirm Check-In
                     </>
                   )}
                 </button>
@@ -474,12 +470,12 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Logging Egress...
+                      Logging Check-Out...
                     </>
                   ) : (
                     <>
                       <ArrowRight className="w-4 h-4" />
-                      Confirm Egress (Log Exit)
+                      Confirm Check-Out
                     </>
                   )}
                 </button>

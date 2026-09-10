@@ -1,15 +1,11 @@
 import { customAlphabet } from "nanoid";
 
-// Generates 8 random uppercase alphabetic characters
-const genAlpha = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 8);
-
-// Generates 8 random uppercase alphanumeric characters (letters + numbers)
-const genAlphaNum = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8);
+const genPart = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 8);
 
 /**
- * Generates a cryptographically secure, unguessable access ticket number.
- * Pattern: STYD.[8 chars alphabetic]-[8 chars alphanumeric] (e.g., STYD.MQRGNTLB-910B2539)
+ * Generates official Starzs Ticket ID format: STYD.XXXXXXXX-XXXXXXXX
+ * Example: "STYD.USFDCWBV-OLZN2OIY"
  */
 export function generateSecureTicketNumber(): string {
-  return `STYD.${genAlpha()}-${genAlphaNum()}`;
+  return `STYD.${genPart()}-${genPart()}`;
 }
