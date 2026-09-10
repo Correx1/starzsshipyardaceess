@@ -3,14 +3,15 @@ import { verifyAdminToken, verifyClientToken } from "./lib/auth";
 import { createClient } from "@supabase/supabase-js";
 
 // Initialize lightweight Supabase client using service role key to bypass RLS for status checks
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-project.supabase.co";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-key";
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
   },
 });
+
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

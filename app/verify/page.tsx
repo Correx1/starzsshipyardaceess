@@ -1,139 +1,435 @@
 "use client";
 
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Search, Loader2, AlertTriangle, Key } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { Search, Loader2, AlertTriangle, Camera, ArrowLeft, Key, RefreshCw, Zap, ZapOff } from "lucide-react";
+import Link from "next/link";
+import { Html5Qrcode } from "html5-qrcode";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export default function VerifySearchPage() {
+function VerifySearchContent() {
   const router = useRouter();
   
-  const [pinInput, setPinInput] = useState("");
+  // Mode: "scanner" by default (straight in the scanner on opening), or "manual"
+  const [mode, setMode] = useState<"scanner" | "manual">("scanner");
+  
+  // Manual Input State
+  const [ticketInput, setTicketInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
+  // Scanner State
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
+  const [torchOn, setTorchOn] = useState(false);
+  const [hasTorch, setHasTorch] = useState(false);
+
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const readerElementId = "inline-gate-qr-reader";
+
+  // Audio feedback on scan
+  const playScanChime = useCallback(() => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.12);
+
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } catch {
+      // Audio context might be restricted
+    }
+  }, []);
+
+  const handleScanText = useCallback((decodedText: string) => {
+    const trimmed = decodedText.trim();
+    if (!trimmed) return;
+
+    playScanChime();
+
+    // Check if URL
+    if (trimmed.includes("/verify/")) {
+      const match = trimmed.match(/\/verify\/([^/?#\s]+)/);
+      if (match && match[1]) {
+        router.push(`/verify/${encodeURIComponent(match[1])}`);
+        return;
+      }
+    }
+
+    router.push(`/verify/${encodeURIComponent(trimmed)}`);
+  }, [playScanChime, router]);
+
+  // Stop scanner safely
+  const stopCamera = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+      } catch (err) {
+        console.warn("Error stopping camera scanner:", err);
+      }
+    }
+    setIsCameraActive(false);
+    setTorchOn(false);
+  }, []);
+
+  // Start scanner
+  const startCamera = useCallback(async (cameraId?: string) => {
+    setCameraError(null);
+
+    try {
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode(readerElementId);
+      }
+
+      if (scannerRef.current.isScanning) {
+        await scannerRef.current.stop();
+      }
+
+      const camConfig = cameraId
+        ? cameraId
+        : { facingMode: "environment" };
+
+      await scannerRef.current.start(
+        camConfig,
+        {
+          fps: 15,
+          qrbox: { width: 230, height: 230 },
+          aspectRatio: 1.0,
+        },
+        (decodedText) => {
+          handleScanText(decodedText);
+        },
+        () => {
+          // Frame decode error (normal between frames)
+        }
+      );
+
+      setIsCameraActive(true);
+
+      // Check for torch capability
+      try {
+        const capabilities = scannerRef.current.getRunningTrackCapabilities();
+        setHasTorch(Boolean(capabilities && (capabilities as any).torch));
+      } catch {
+        setHasTorch(false);
+      }
+    } catch (err: any) {
+      console.error("Camera start error:", err);
+      setCameraError(
+        err.name === "NotAllowedError"
+          ? "Camera permission denied. Please allow camera access in browser settings or enter PIN below."
+          : "Unable to start camera scanner. Please enter PIN below."
+      );
+      setIsCameraActive(false);
+    }
+  }, [handleScanText]);
+
+  // Initialize camera list and start on mount if in scanner mode
+  useEffect(() => {
+    let isMounted = true;
+
+    if (mode === "scanner") {
+      Html5Qrcode.getCameras()
+        .then((devices) => {
+          if (!isMounted) return;
+          if (devices && devices.length > 0) {
+            setCameras(devices);
+            // Default to back camera on mobile
+            const backCam = devices.find((d) =>
+              /back|rear|environment/i.test(d.label)
+            );
+            const selected = backCam ? backCam.id : devices[0].id;
+            setSelectedCameraId(selected);
+            startCamera(selected);
+          } else {
+            startCamera();
+          }
+        })
+        .catch(() => {
+          if (isMounted) startCamera();
+        });
+    } else {
+      stopCamera();
+    }
+
+    return () => {
+      isMounted = false;
+      stopCamera();
+    };
+  }, [mode, startCamera, stopCamera]);
+
+  // Toggle Torch
+  const toggleTorch = async () => {
+    if (!scannerRef.current || !hasTorch) return;
+    try {
+      await scannerRef.current.applyVideoConstraints({
+        advanced: [{ torch: !torchOn } as any],
+      });
+      setTorchOn(!torchOn);
+    } catch (err) {
+      console.warn("Torch toggle failed:", err);
+    }
+  };
+
+  // Switch camera
+  const handleSwitchCamera = () => {
+    if (cameras.length <= 1) return;
+    const currentIndex = cameras.findIndex((c) => c.id === selectedCameraId);
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    const nextCam = cameras[nextIndex];
+    setSelectedCameraId(nextCam.id);
+    startCamera(nextCam.id);
+  };
+
+  // Handle Manual PIN / Ticket Search
+  const handleManualSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const cleanPin = pinInput.trim();
-    if (!cleanPin) return;
-
-    if (cleanPin.length !== 6 || !/^\d+$/.test(cleanPin)) {
-      setError("PIN must be exactly 6 numeric digits.");
-      return;
-    }
+    const cleanInput = ticketInput.trim();
+    if (!cleanInput) return;
 
     setIsLoading(true);
 
     try {
-      // Query the database to retrieve the ticket number associated with this PIN
-      const { data, error: queryError } = await supabase
-        .from("access_requests")
-        .select("ticket_number")
-        .eq("pin_code", cleanPin)
-        .single();
+      const res = await fetch("/api/verify/ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: cleanInput }),
+      });
 
-      if (queryError || !data) {
-        setError("Invalid PIN. No matching entry pass found.");
-        setIsLoading(false);
-        return;
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "No matching entry pass found.");
       }
 
-      // If found, redirect the guard to the detailed ticket verification page
-      router.push(`/verify/${data.ticket_number}`);
-    } catch (err) {
-      console.error("PIN lookup error:", err);
-      setError("An unexpected connection error occurred.");
+      router.push(`/verify/${encodeURIComponent(data.ticket_number)}`);
+    } catch (err: any) {
+      console.error("Lookup error:", err);
+      setError(err.message || "An unexpected error occurred.");
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-primary-dark text-white flex flex-col justify-between p-4">
+    <div className="min-h-screen bg-[#0d1117] text-zinc-100 flex flex-col justify-between selection:bg-primary-blue selection:text-white">
       
-      {/* Small Header */}
-      <header className="py-4 flex items-center justify-center gap-2 border-b border-primary-blue">
-        <ShieldCheck className="w-6 h-6 text-white" />
-        <span className="font-bold text-xs sm:text-sm uppercase tracking-wider text-center">STARZS MARINE AND ENGINEERING LTD GATE SECURITY PORTAL</span>
-      </header>
+      {/* Top Header - Just Big Logo with Left Margin & Simple Back Link */}
+      <div className="w-full pt-6 sm:pt-8 px-6 sm:px-12 flex items-center justify-between">
+        <Link href="/" className="inline-block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="/image.png" 
+            alt="Starzs" 
+            className="h-14 sm:h-20 w-auto object-contain" 
+          />
+        </Link>
 
-      {/* Main Container */}
-      <main className="flex-1 flex items-center justify-center py-10">
-        <div className="bg-white text-zinc-900 border border-zinc-200 p-6 rounded w-full max-w-sm shadow-xl">
+        <Link
+          href="/"
+          className="p-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
+          title="Return to Portal"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* Main Terminal Body */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
+        <div className="w-full max-w-md bg-zinc-900/95 border border-zinc-800 rounded-xl shadow-2xl p-5 sm:p-7 space-y-5">
           
-          <div className="text-center mb-6">
-            <div className="w-12 h-12 bg-zinc-100 rounded-sm flex items-center justify-center mx-auto mb-3 text-primary-dark">
-              <Key className="w-6 h-6" />
-            </div>
-            <h2 className="text-sm font-bold uppercase text-primary-dark tracking-wider">Lookup Gate Pass</h2>
-            <p className="text-zinc-500 text-[11px] mt-1 leading-relaxed">
-              Enter the driver's <strong>6-digit Numeric PIN</strong> below to retrieve their official entrance credentials.
-            </p>
-          </div>
+          {/* SCANNER VIEW (DEFAULT ON OPENING) */}
+          {mode === "scanner" && (
+            <div className="space-y-4">
+              <div className="relative overflow-hidden rounded-xl bg-black border border-zinc-700/80 aspect-square flex items-center justify-center">
+                
+                {/* HTML5 QR Scanner Target Container */}
+                <div id={readerElementId} className="w-full h-full" />
 
-          <form onSubmit={handleSearch} className="space-y-4">
-            {error && (
-              <div className="bg-rose-50 border-l-2 border-destructive text-destructive px-3 py-2 rounded text-xs font-semibold flex items-start gap-1.5 leading-normal">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
+                {/* Live Aim / Scanner Target Overlay */}
+                {isCameraActive && (
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
+                    <div className="w-56 h-56 border-2 border-emerald-400/80 rounded-lg relative shadow-[0_0_15px_rgba(52,211,153,0.3)]">
+                      {/* Corner Accents */}
+                      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-emerald-300"></div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-emerald-300"></div>
+                      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-emerald-300"></div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-emerald-300"></div>
+                      
+                      {/* Animated Laser Scan Line */}
+                      <div className="w-full h-0.5 bg-emerald-400/90 shadow-[0_0_8px_#34d399] animate-pulse mt-28"></div>
+                    </div>
+                    <span className="text-[11px] font-mono text-emerald-400 bg-black/70 px-2 py-0.5 rounded mt-3 uppercase tracking-wider font-bold">
+                      Align QR Code Within Box
+                    </span>
+                  </div>
+                )}
+
+                {/* Controls Overlay (Torch / Switch Camera) */}
+                {isCameraActive && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                    {hasTorch && (
+                      <button
+                        type="button"
+                        onClick={toggleTorch}
+                        className={`p-2 rounded-full border transition-colors ${
+                          torchOn
+                            ? "bg-amber-400 text-black border-amber-300"
+                            : "bg-black/60 text-white border-zinc-700 hover:bg-black"
+                        }`}
+                        title="Toggle Flashlight"
+                      >
+                        {torchOn ? <Zap className="w-4 h-4" /> : <ZapOff className="w-4 h-4" />}
+                      </button>
+                    )}
+
+                    {cameras.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={handleSwitchCamera}
+                        className="p-2 rounded-full bg-black/60 hover:bg-black text-white border border-zinc-700 transition-colors"
+                        title="Switch Camera"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Error / Loading State */}
+                {cameraError && (
+                  <div className="absolute inset-0 bg-zinc-950 p-6 flex flex-col items-center justify-center text-center space-y-3">
+                    <AlertTriangle className="w-8 h-8 text-amber-400" />
+                    <p className="text-xs text-zinc-300 max-w-xs leading-relaxed">{cameraError}</p>
+                    <button
+                      type="button"
+                      onClick={() => startCamera(selectedCameraId)}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline font-bold"
+                    >
+                      Retry Camera
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
 
-            <div>
-              <label htmlFor="pin" className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">
-                6-Digit PIN Code
-              </label>
-              <input
-                id="pin"
-                type="text"
-                pattern="\d*"
-                maxLength={6}
-                placeholder="e.g. 921083"
-                value={pinInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  // Allow only numbers and max 6 digits
-                  if (/^\d*$/.test(val) && val.length <= 6) {
-                    setPinInput(val);
-                  }
+              {/* Button to Switch to PIN / Ticket ID */}
+              <button
+                type="button"
+                onClick={() => {
+                  stopCamera();
+                  setMode("manual");
                 }}
-                disabled={isLoading}
-                className="block w-full text-center tracking-widest font-mono text-2xl font-black py-2.5 bg-zinc-50 border border-zinc-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue focus:bg-white transition-all text-primary-dark"
-                required
-                autoFocus
-              />
+                className="w-full bg-[#11035E] hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-blue-700/50 shadow-md text-xs sm:text-sm cursor-pointer"
+              >
+                <Key className="w-4 h-4 text-amber-400" />
+                Or Enter Ticket ID / PIN
+              </button>
             </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={isLoading || pinInput.length !== 6}
-              className="w-full bg-primary-dark hover:bg-primary-blue text-white text-xs font-bold py-3 rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Verifying PIN...
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4" />
-                  Search Pass
-                </>
-              )}
-            </button>
-          </form>
+          {/* MANUAL PIN / TICKET VIEW */}
+          {mode === "manual" && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider block">
+                  Manual Verification
+                </span>
+                <span className="text-sm font-extrabold text-white block mt-0.5">
+                  Enter 6-Digit PIN or Ticket ID
+                </span>
+              </div>
+
+              <form onSubmit={handleManualSearch} className="space-y-4">
+                {error && (
+                  <div className="bg-rose-950/60 border-l-2 border-rose-500 text-rose-300 p-3 rounded text-xs font-medium flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <div>
+                  <input
+                    id="ticket_pin"
+                    type="text"
+                    placeholder="e.g. 921083 or STYD.1092"
+                    value={ticketInput}
+                    onChange={(e) => setTicketInput(e.target.value)}
+                    disabled={isLoading}
+                    className="block w-full text-center tracking-widest font-mono text-xl font-bold py-3 bg-zinc-950 border border-zinc-700 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder:text-zinc-600 placeholder:text-xs placeholder:font-sans placeholder:tracking-normal uppercase"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || !ticketInput.trim()}
+                  className="w-full bg-[#11035E] hover:bg-blue-900 text-white text-xs sm:text-sm font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer border border-blue-700/50 shadow-sm"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      Verify Access
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Button to Switch Back to Camera Scanner */}
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setMode("scanner");
+                }}
+                className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-zinc-700 text-xs cursor-pointer"
+              >
+                <Camera className="w-4 h-4 text-emerald-400" />
+                Switch to Camera Scanner
+              </button>
+            </div>
+          )}
+
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="py-4 text-center text-[10px] text-zinc-400 font-medium">
-        STARZS MARINE AND ENGINEERING LTD ACCESS CONTROL &copy; 2026. All rights reserved.
+      {/* Simple Footer */}
+      <footer className="py-4 px-6 text-center text-[10px] text-zinc-600">
+        Starzs Marine &copy; 2026. Gate Security Access.
       </footer>
     </div>
+  );
+}
+
+export default function VerifySearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+      </div>
+    }>
+      <VerifySearchContent />
+    </Suspense>
   );
 }

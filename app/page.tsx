@@ -2,9 +2,7 @@
 
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { 
-  Lock, User, LogIn, Loader2, ShieldAlert 
-} from "lucide-react";
+import { Loader2, Lock, User, AlertTriangle, LogIn } from "lucide-react";
 
 function UnifiedLoginForm() {
   const router = useRouter();
@@ -58,26 +56,26 @@ function UnifiedLoginForm() {
   };
 
   return (
-    <div className="bg-white w-full max-w-sm border border-zinc-200/80 rounded shadow-2xl overflow-hidden relative z-10 flex flex-col">
+    <div className="bg-white/95 backdrop-blur-md w-full max-w-sm border border-zinc-200/90 rounded shadow-2xl overflow-hidden relative z-10 flex flex-col">
       {/* Header */}
       <div className="px-6 pt-8 pb-5 text-center border-b border-zinc-100 shrink-0">
-        <div className="inline-flex mb-4 shadow-xs">
+        <div className="inline-flex mb-3.5 drop-shadow-sm">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="STARZS Logo" className="h-14 w-auto object-contain" />
+          <img src="/logo.png" alt="STARZS Logo" className="h-12 w-auto object-contain" />
         </div>
-        <h2 className="text-md font-black text-primary-dark tracking-tight uppercase">
-          Access Portal
+        <h2 className="text-base font-extrabold text-primary-dark tracking-tight uppercase">
+          Access Control Portal
         </h2>
-        <p className="text-zinc-400 text-[10px] uppercase font-bold tracking-wider mt-1">
-          Enter credentials to access your dashboard
+        <p className="text-zinc-500 text-[11px] font-medium tracking-wide mt-1">
+          Starzs Marine & Engineering Ltd Operations
         </p>
       </div>
 
       {/* Form Body */}
       <form onSubmit={handleLogin} className="p-6 space-y-4">
         {error && (
-          <div className="bg-rose-50 border-l-2 border-destructive text-destructive px-3 py-2.5 rounded text-xs font-semibold flex items-start gap-2 leading-relaxed">
-            <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="bg-rose-50 border-l-2 border-destructive text-destructive px-3.5 py-2.5 rounded text-xs font-semibold flex items-start gap-2 leading-relaxed">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
@@ -85,9 +83,9 @@ function UnifiedLoginForm() {
         {/* Username */}
         <div>
           <label htmlFor="username" className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
-            Username or Email
+            Email or Username
           </label>
-          <div className="relative group focus-within:text-primary-blue text-zinc-400">
+          <div className="relative group text-zinc-400 focus-within:text-primary-blue">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors">
               <User className="w-4 h-4 transition-colors group-focus-within:text-primary-blue" />
             </div>
@@ -97,7 +95,7 @@ function UnifiedLoginForm() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. admin or partner@corp.com"
-              className="block w-full pl-9 pr-3 py-2.5 bg-white border border-zinc-200 rounded text-xs md:text-sm text-zinc-800 placeholder-zinc-400 transition-all focus:outline-none focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/5"
+              className="block w-full pl-9 pr-3 py-2 bg-zinc-50/70 border border-zinc-200 rounded text-xs md:text-sm text-zinc-900 placeholder-zinc-400 transition-all focus:outline-none focus:border-primary-blue focus:ring-1 focus:ring-primary-blue focus:bg-white"
               required
               disabled={isLoading}
             />
@@ -109,7 +107,7 @@ function UnifiedLoginForm() {
           <label htmlFor="password" className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
             Password
           </label>
-          <div className="relative group focus-within:text-primary-blue text-zinc-400">
+          <div className="relative group text-zinc-400 focus-within:text-primary-blue">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors">
               <Lock className="w-4 h-4 transition-colors group-focus-within:text-primary-blue" />
             </div>
@@ -119,7 +117,7 @@ function UnifiedLoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="block w-full pl-9 pr-3 py-2.5 bg-white border border-zinc-200 rounded text-xs md:text-sm text-zinc-800 placeholder-zinc-400 transition-all focus:outline-none focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/5"
+              className="block w-full pl-9 pr-3 py-2 bg-zinc-50/70 border border-zinc-200 rounded text-xs md:text-sm text-zinc-900 placeholder-zinc-400 transition-all focus:outline-none focus:border-primary-blue focus:ring-1 focus:ring-primary-blue focus:bg-white"
               required
               disabled={isLoading}
             />
@@ -127,33 +125,26 @@ function UnifiedLoginForm() {
         </div>
 
         {/* Submit Button */}
-        <div className="pt-2">
+        <div className="pt-1">
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-linear-to-r from-primary-dark to-primary-blue hover:from-primary-blue hover:to-primary-dark text-white text-xs md:text-sm font-bold py-2.5 md:py-3.5 rounded flex items-center justify-center gap-2 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue disabled:opacity-75 disabled:cursor-not-allowed hover:shadow cursor-pointer"
+            className="w-full bg-primary-dark hover:bg-primary-blue text-white text-xs md:text-sm font-bold py-2.5 rounded flex items-center justify-center gap-2 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary-blue disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Signing In...
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Authenticating...
               </>
             ) : (
               <>
-                <LogIn className="w-3.5 h-3.5" />
-                Sign In
+                <LogIn className="w-4 h-4" />
+                Sign In to Portal
               </>
             )}
           </button>
         </div>
       </form>
-
-      {/* Footer Info */}
-      <div className="px-6 py-4 bg-zinc-50/50 border-t border-zinc-100 text-center shrink-0">
-        <p className="text-[10px] text-zinc-400 font-medium leading-normal">
-          Authorized personnel access only.
-        </p>
-      </div>
     </div>
   );
 }

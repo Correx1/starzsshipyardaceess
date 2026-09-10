@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 interface HashedPassword {
   hash: string;
@@ -6,25 +7,20 @@ interface HashedPassword {
 }
 
 /**
- * Generates a cryptographically secure random salt (16 bytes, hex encoded)
+ * Generates a cryptographically secure random salt
  */
 export function generateSalt(): string {
   return crypto.randomBytes(16).toString("hex");
 }
 
 /**
- * Hashes a password using SHA-256 and a cryptographic salt
+ * Hashes a password using bcrypt (adaptive, highly secure hashing)
  * @param password The plain text password
- * @param salt Optional. The salt. If not provided, a new one will be generated.
+ * @param salt Optional. Kept for signature compatibility.
  */
 export function hashPassword(password: string, salt?: string): HashedPassword {
-  const activeSalt = salt || generateSalt();
-  
-  // Hash using SHA-256 HMAC
-  const hash = crypto
-    .createHmac("sha256", activeSalt)
-    .update(password)
-    .digest("hex");
+  const activeSalt = salt || bcrypt.genSaltSync(10);
+  const hash = bcrypt.hashSync(password, activeSalt);
 
   return {
     hash,
@@ -33,9 +29,28 @@ export function hashPassword(password: string, salt?: string): HashedPassword {
 }
 
 /**
- * Verifies a plain text password against a stored hash and salt
+ * Verifies a plain text password against a stored hash and salt.
+ * Supports modern bcrypt hashes as well as legacy HMAC-SHA256 hashes.
  */
 export function verifyPassword(password: string, hash: string, salt: string): boolean {
-  const result = hashPassword(password, salt);
-  return result.hash === hash;
+  // Check if hash is a modern bcrypt hash
+  if (hash.startsWith("$2a$") || hash.startsWith("$2b$") || hash.startsWith("$2y$")) {
+    try {
+      return bcrypt.compareSync(password, hash);
+    } catch {
+      return false;
+    }
+  }
+
+  // Legacy HMAC-SHA256 fallback
+  try {
+    const legacyHash = crypto
+      .createHmac("sha256", salt)
+      .update(password)
+      .digest("hex");
+    return legacyHash === hash;
+  } catch {
+    return false;
+  }
 }
+

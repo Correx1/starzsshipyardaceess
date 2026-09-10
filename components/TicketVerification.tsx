@@ -1,10 +1,12 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  CheckCircle2, XCircle, AlertTriangle, ShieldAlert, ArrowRight, 
-  ShieldCheck, Calendar, User, Phone, Mail, Loader2, ArrowLeft, Clock
+  CheckCircle2, XCircle, AlertTriangle, ShieldAlert,
+  ShieldCheck, Calendar, User, Phone, Mail, Loader2, ArrowLeft, Clock,
+  Truck, Shield, ArrowRight, Printer, Building2
 } from "lucide-react";
 
 interface ResourceItem {
@@ -55,6 +57,34 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
   const isCheckedOut = ticket.exited_at !== null;
   const isExpired = isCheckedIn && isCheckedOut;
 
+  // Play audio chime
+  const playFeedbackSound = (type: "success" | "error") => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      if (type === "success") {
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.15);
+      } else {
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.2);
+      }
+
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } catch {
+      // Audio context may be restricted
+    }
+  };
+
   // Handle Check-In Action
   const handleCheckIn = async () => {
     if (!guardCode.trim()) {
@@ -76,11 +106,13 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
       if (!response.ok) throw new Error(data.error);
 
       setTicket(data.request);
-      setSuccessMsg("Check-In logged successfully. Access granted.");
-      setGuardCode(""); // Clear code input
+      setSuccessMsg("Ingress Authorized: Check-in timestamp and security officer code logged.");
+      playFeedbackSound("success");
+      setGuardCode("");
     } catch (err: any) {
       console.error("Check-in error:", err);
       setError(err.message || "Failed to log check-in.");
+      playFeedbackSound("error");
     } finally {
       setIsLoading(false);
     }
@@ -107,265 +139,311 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
       if (!response.ok) throw new Error(data.error);
 
       setTicket(data.request);
-      setSuccessMsg("Check-Out logged successfully. Ticket is now expired.");
-      setGuardCode(""); // Clear code input
+      setSuccessMsg("Egress Completed: Check-out timestamp recorded. Pass lifecycle finished.");
+      playFeedbackSound("success");
+      setGuardCode("");
     } catch (err: any) {
       console.error("Check-out error:", err);
       setError(err.message || "Failed to log check-out.");
+      playFeedbackSound("error");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-dull-white flex flex-col items-center justify-center p-4 text-zinc-900">
+    <div className="min-h-screen bg-[#0d1117] text-zinc-100 flex flex-col items-center justify-center p-4 sm:p-6 print:bg-white print:p-0">
       
-      {/* Back Button (Hidden on Print) */}
-      <div className="w-full max-w-md mb-4 flex items-center justify-between print:hidden">
+      {/* Top Navigation Bar (Hidden on Print) */}
+      <div className="w-full max-w-xl mb-3 flex items-center justify-between print:hidden">
         <button
           onClick={() => router.push("/verify")}
-          className="flex items-center gap-1 text-xs font-bold text-primary-blue hover:text-primary-dark transition-colors"
+          className="flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Search Portal
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Security Terminal</span>
+        </button>
+
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded cursor-pointer"
+        >
+          <Printer className="w-3.5 h-3.5" />
+          <span>Print Manifest</span>
         </button>
       </div>
 
-      <div className="bg-white border border-zinc-200 shadow-md rounded max-w-md w-full overflow-hidden">
+      {/* Main Inspection Card */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded shadow-2xl max-w-xl w-full overflow-hidden print:border print:border-black print:shadow-none">
         
-        {/* Header */}
-        <div className="bg-primary-dark px-6 py-4 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-white" />
-            <h1 className="text-xs font-bold tracking-tight uppercase">Security Audit Gate</h1>
+        {/* Terminal Header */}
+        <div className="bg-zinc-950 px-5 py-3 border-b border-zinc-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded bg-[#11035E] border border-blue-600/40 flex items-center justify-center text-white">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-xs font-black tracking-wider uppercase text-white">
+                Gate Inspection & Audit
+              </h1>
+              <span className="text-[10px] text-zinc-400 font-mono">STARZS SHIPYARD PORT HARCOURT</span>
+            </div>
           </div>
-          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Live Scanner</span>
+          
+          <div className="text-right">
+            <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest block">
+              {ticket.ticket_number}
+            </span>
+          </div>
         </div>
 
         {/* Dynamic Lifecycle Status Banner */}
         {isExpired ? (
-          <div className="bg-rose-100 border-b border-rose-300 p-6 text-center">
-            <div className="flex justify-center mb-3 text-rose-600">
-              <ShieldAlert className="w-12 h-12" />
+          <div className="bg-zinc-950 border-b border-rose-900/60 p-4 text-center">
+            <div className="flex justify-center mb-1 text-rose-500">
+              <ShieldAlert className="w-8 h-8" />
             </div>
-            <h2 className="text-base font-black text-rose-700 uppercase tracking-wider">TICKET EXPIRED & ALREADY USED</h2>
-            <p className="text-zinc-600 text-[11px] font-semibold mt-1.5 max-w-xs mx-auto leading-relaxed">
-              This ticket has already been used for both check-in and check-out. Access is strictly denied.
+            <h2 className="text-sm font-black text-rose-400 uppercase tracking-wider">
+              TICKET EXPIRED & ALREADY USED
+            </h2>
+            <p className="text-zinc-400 text-xs mt-0.5">
+              This pass has completed both ingress and egress logs. Access closed.
             </p>
           </div>
         ) : isCheckedIn ? (
-          <div className="bg-blue-50 border-b border-blue-200 p-6 text-center">
-            <div className="flex justify-center mb-3 text-primary-blue">
-              <Clock className="w-12 h-12" />
+          <div className="bg-zinc-950 border-b border-amber-900/60 p-4 text-center">
+            <div className="flex justify-center mb-1 text-amber-400">
+              <Clock className="w-8 h-8 animate-pulse" />
             </div>
-            <h2 className="text-base font-black text-primary-blue uppercase tracking-wider">VISITOR CURRENTLY INSIDE</h2>
-            <p className="text-zinc-600 text-[11px] font-semibold mt-1 leading-relaxed">
-              This visitor was checked in. Log exit to complete the access lifecycle.
+            <h2 className="text-sm font-black text-amber-300 uppercase tracking-wider">
+              VISITOR CURRENTLY INSIDE SHIPYARD
+            </h2>
+            <p className="text-zinc-400 text-xs mt-0.5">
+              In-facility duration active. Security must log checkout upon vehicle departure.
             </p>
           </div>
         ) : isApproved ? (
-          <div className="bg-emerald-50 border-b border-emerald-200 p-6 text-center">
-            <div className="flex justify-center mb-3 text-success">
-              <CheckCircle2 className="w-12 h-12" />
+          <div className="bg-zinc-950 border-b border-emerald-900/60 p-4 text-center">
+            <div className="flex justify-center mb-1 text-emerald-400">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h2 className="text-base font-black text-success uppercase tracking-wider">VERIFIED ACCESS APPROVED</h2>
-            <p className="text-zinc-600 text-[11px] font-semibold mt-1 leading-relaxed">
-              This ticket is active and authorized for entry. Log check-in now.
+            <h2 className="text-sm font-black text-emerald-300 uppercase tracking-wider">
+              VERIFIED PASS &bull; APPROVED FOR INGRESS
+            </h2>
+            <p className="text-zinc-400 text-xs mt-0.5">
+              Manifest confirmed by administration. Authorize entry upon driver ID verification.
             </p>
           </div>
         ) : isCancelled ? (
-          <div className="bg-rose-100 border-b border-rose-300 p-6 text-center">
-            <div className="flex justify-center mb-3 text-rose-600">
-              <ShieldAlert className="w-12 h-12" />
+          <div className="bg-zinc-950 border-b border-rose-900/60 p-4 text-center">
+            <div className="flex justify-center mb-1 text-rose-500">
+              <ShieldAlert className="w-8 h-8" />
             </div>
-            <h2 className="text-base font-black text-rose-700 uppercase tracking-wider">ACCESS CANCELLED / REVOKED</h2>
-            <p className="text-zinc-600 text-[11px] font-semibold mt-1 leading-relaxed">
-              This access request has been cancelled by the  client workspace. Access is strictly denied.
+            <h2 className="text-sm font-black text-rose-400 uppercase tracking-wider">
+              ACCESS CANCELLED / REVOKED
+            </h2>
+            <p className="text-zinc-400 text-xs mt-0.5">
+              This pass was cancelled by the requesting partner client. Ingress prohibited.
             </p>
           </div>
         ) : isDenied ? (
-          <div className="bg-rose-50 border-b border-rose-200 p-6 text-center">
-            <div className="flex justify-center mb-3 text-destructive">
-              <XCircle className="w-12 h-12" />
+          <div className="bg-zinc-950 border-b border-rose-900/60 p-4 text-center">
+            <div className="flex justify-center mb-1 text-rose-500">
+              <XCircle className="w-8 h-8" />
             </div>
-            <h2 className="text-base font-black text-destructive uppercase tracking-wider">ACCESS DECLINED</h2>
-            <p className="text-zinc-600 text-[11px] font-semibold mt-1 leading-relaxed">
-              This entry request has been officially declined. Do not grant access.
+            <h2 className="text-sm font-black text-rose-400 uppercase tracking-wider">
+              ENTRY REQUEST DECLINED
+            </h2>
+            <p className="text-zinc-400 text-xs mt-0.5">
+              This entry request was declined by facility security administration.
             </p>
           </div>
         ) : (
-          <div className="bg-amber-50 border-b border-amber-200 p-6 text-center">
-            <div className="flex justify-center mb-3 text-amber-500">
-              <AlertTriangle className="w-12 h-12 animate-pulse" />
+          <div className="bg-zinc-950 border-b border-amber-900/60 p-4 text-center">
+            <div className="flex justify-center mb-1 text-amber-400">
+              <AlertTriangle className="w-8 h-8 animate-pulse" />
             </div>
-            <h2 className="text-base font-black text-amber-500 uppercase tracking-wider">PENDING APPROVAL</h2>
-            <p className="text-zinc-600 text-[11px] font-semibold mt-1 leading-relaxed">
-              This request is waiting for administrator decision. Access cannot be granted yet.
+            <h2 className="text-sm font-black text-amber-300 uppercase tracking-wider">
+              PENDING ADMIN APPROVAL
+            </h2>
+            <p className="text-zinc-400 text-xs mt-0.5">
+              Awaiting administration approval before gate ingress can be granted.
             </p>
           </div>
         )}
 
         {/* Form Message Feedback */}
         {successMsg && (
-          <div className="px-6 pt-4">
-            <div className="bg-emerald-50 border-l-2 border-success text-success px-3 py-2.5 rounded text-xs font-bold leading-normal">
-              {successMsg}
+          <div className="px-5 pt-4">
+            <div className="bg-emerald-950/60 border-l-2 border-emerald-500 text-emerald-300 p-3 rounded text-xs font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{successMsg}</span>
             </div>
           </div>
         )}
 
-        {/* Ticket Details */}
-        <div className="p-6 space-y-5">
-          {/* Monospaced Ticket ID & PIN */}
-          <div className="grid grid-cols-2 gap-3 pb-4 border-b border-zinc-100">
+        {/* Ticket Details Body */}
+        <div className="p-5 space-y-4">
+          
+          {/* Monospaced Pass Credentials */}
+          <div className="grid grid-cols-2 gap-3 bg-zinc-950 p-3.5 rounded border border-zinc-800">
             <div>
-              <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider block mb-0.5">Ticket Number</span>
-              <span className="font-mono text-xs font-bold text-primary-dark tracking-tighter truncate block">{ticket.ticket_number}</span>
+              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-0.5">
+                Pass Number
+              </span>
+              <span className="font-mono text-xs font-black text-white tracking-wider truncate block">
+                {ticket.ticket_number}
+              </span>
             </div>
             <div>
-              <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider block mb-0.5">Backup PIN</span>
-              <span className="font-mono text-sm font-black text-primary-blue tracking-widest block">{ticket.pin_code}</span>
+              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-0.5">
+                Security PIN
+              </span>
+              <span className="font-mono text-xs font-black text-amber-400 tracking-widest block">
+                {ticket.pin_code}
+              </span>
             </div>
           </div>
 
-          {/* Visitor profile */}
-          <div className="space-y-3">
-            <h3 className="text-[10px] font-extrabold uppercase text-primary-blue tracking-wider">Visitor Profile</h3>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-start gap-2.5">
-                <User className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[8px] text-zinc-400 font-bold uppercase block">Partner Company:</span>
-                  <span className="font-bold text-zinc-800 uppercase">{clientOrgName}</span>
-                </div>
+          {/* Visitor / Driver Manifest */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold uppercase text-zinc-300 tracking-wider flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-blue-400" />
+              Visitor Profile & Entity
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-0.5">Partner Company</span>
+                <span className="font-bold text-white uppercase truncate block">{clientOrgName}</span>
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-0.5">Driver / Visitor Name</span>
+                <span className="font-bold text-zinc-200 truncate block">{ticket.visitor_name}</span>
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-0.5">Driver Phone</span>
+                <span className="font-mono font-semibold text-zinc-300">{ticket.visitor_phone || "Not Specified"}</span>
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-0.5">Scheduled Date</span>
+                <span className="font-bold text-amber-300">{ticket.expected_date}</span>
               </div>
 
               {ticket.requesting_staff_name && (
-                <div className="flex items-start gap-2.5">
-                  <User className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[8px] text-zinc-400 font-bold uppercase block">Requesting  Staff:</span>
-                    <span className="font-semibold text-zinc-800">{ticket.requesting_staff_name}</span>
-                  </div>
+                <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded sm:col-span-2">
+                  <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-0.5">Requesting Staff / Officer</span>
+                  <span className="font-medium text-zinc-300">{ticket.requesting_staff_name}</span>
+                  {ticket.requesting_staff_email && (
+                    <span className="text-[10px] text-zinc-400 font-mono block mt-0.5">{ticket.requesting_staff_email}</span>
+                  )}
                 </div>
               )}
-
-              {ticket.requesting_staff_email && (
-                <div className="flex items-start gap-2.5">
-                  <Mail className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[8px] text-zinc-400 font-bold uppercase block">Requesting Email:</span>
-                    <span className="font-semibold text-zinc-800 font-mono">{ticket.requesting_staff_email}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-start gap-2.5">
-                <User className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[8px] text-zinc-400 font-bold uppercase block">Driver's Name:</span>
-                  <span className="font-semibold text-zinc-800">{ticket.visitor_name}</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <Phone className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[8px] text-zinc-400 font-bold uppercase block">Driver Phone:</span>
-                  <span className="font-semibold text-zinc-700 font-mono">{ticket.visitor_phone}</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <Calendar className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[8px] text-zinc-400 font-bold uppercase block">Scheduled Arrival Date:</span>
-                  <span className="font-bold text-primary-dark">{ticket.expected_date}</span>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* Auditing Timestamps */}
-          <div className="pt-4 border-t border-zinc-100 space-y-2">
-            <h3 className="text-[10px] font-extrabold uppercase text-primary-blue tracking-wider">Gate Check Logs</h3>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-zinc-50 border border-zinc-200 p-2.5 rounded">
-                <span className="text-[8px] text-zinc-400 font-bold uppercase block">Check-In Time</span>
-                <span className="font-mono text-[10px] font-semibold text-zinc-800 block">
-                  {ticket.entered_at ? new Date(ticket.entered_at).toLocaleString() : "Pending"}
-                </span>
-              </div>
-              <div className="bg-zinc-50 border border-zinc-200 p-2.5 rounded">
-                <span className="text-[8px] text-zinc-400 font-bold uppercase block">Check-Out Time</span>
-                <span className="font-mono text-[10px] font-semibold text-zinc-800 block">
-                  {ticket.exited_at ? new Date(ticket.exited_at).toLocaleString() : "Pending"}
-                </span>
-              </div>
+          {/* Cargo Checklist */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold uppercase text-zinc-300 tracking-wider flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-blue-400" />
+              Declared Cargo & Resources
+            </h3>
+
+            <div className="bg-zinc-950 border border-zinc-800 rounded p-3">
+              {ticket.resources && ticket.resources.length > 0 ? (
+                <ul className="divide-y divide-zinc-800 text-xs">
+                  {ticket.resources.map((item, idx) => (
+                    <li key={idx} className="py-2 first:pt-0 last:pb-0 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${
+                            item.category === "staff" ? "bg-emerald-950 border-emerald-800 text-emerald-300" :
+                            item.category === "machinery" ? "bg-blue-950 border-blue-800 text-blue-300" :
+                            item.category === "materials" ? "bg-amber-950 border-amber-800 text-amber-300" :
+                            "bg-zinc-800 border-zinc-700 text-zinc-300"
+                          }`}>
+                            {item.category}
+                          </span>
+                          <span className="font-bold text-white">{item.quantity}x {item.type}</span>
+                        </div>
+                        {item.details && (
+                          <span className="block text-[10px] text-zinc-400 mt-0.5 pl-1">
+                            &bull; {item.details}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-zinc-500 italic">No cargo or equipment items declared.</p>
+              )}
             </div>
           </div>
 
+          {/* Gate Logs Timestamps */}
+          <div className="space-y-2 pt-1">
+            <h3 className="text-xs font-bold uppercase text-zinc-300 tracking-wider flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-blue-400" />
+              Gate Check Logs
+            </h3>
 
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-1">Check-In Timestamp</span>
+                <span className="font-mono text-xs font-bold text-zinc-200 block">
+                  {ticket.entered_at ? new Date(ticket.entered_at).toLocaleString() : "Pending Ingress"}
+                </span>
+                {ticket.entered_by && (
+                  <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">Guard ID: {ticket.entered_by}</span>
+                )}
+              </div>
 
-          {/* Resource Checklist */}
-          <div className="pt-4 border-t border-zinc-100">
-            <span className="text-[10px] font-extrabold uppercase text-primary-blue tracking-wider block mb-2">
-              Authorized Checklist of Entry Items
-            </span>
-            <div className="bg-zinc-50 border border-zinc-200 rounded p-3">
-              <ul className="divide-y divide-zinc-200/60 text-xs">
-                {ticket.resources.map((item, idx) => (
-                  <li key={idx} className="py-2 flex items-start gap-2 last:pb-0">
-                    <span className={`text-[8px] font-bold uppercase px-1 py-0.5 rounded shrink-0 border mt-0.5 ${
-                      item.category === "staff" ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
-                      item.category === "machinery" ? "bg-blue-50 border-blue-200 text-blue-800" :
-                      item.category === "materials" ? "bg-amber-50 border-amber-200 text-amber-800" :
-                      "bg-zinc-100 border-zinc-200 text-zinc-800"
-                    }`}>
-                      {item.category}
-                    </span>
-                    <div>
-                      <span className="font-semibold text-zinc-800">{item.quantity}x {item.type}</span>
-                      {item.details && (
-                        <span className="block text-[10px] text-zinc-500 font-medium">
-                          • {item.details}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[9px] text-zinc-400 font-bold uppercase block mb-1">Check-Out Timestamp</span>
+                <span className="font-mono text-xs font-bold text-zinc-200 block">
+                  {ticket.exited_at ? new Date(ticket.exited_at).toLocaleString() : "Pending Egress"}
+                </span>
+                {ticket.exited_by && (
+                  <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">Guard ID: {ticket.exited_by}</span>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Denial Reason if applicable */}
           {isDenied && ticket.denial_reason && (
-            <div className="bg-rose-50 border border-rose-200 text-destructive rounded p-3.5 text-xs">
-              <span className="font-bold block mb-1">Denial Reason:</span>
-              {ticket.denial_reason}
+            <div className="bg-rose-950/60 border-l-2 border-rose-500 text-rose-300 rounded p-3 text-xs space-y-0.5">
+              <span className="font-bold block uppercase text-[10px] tracking-wider text-rose-400">Denial Reason:</span>
+              <p className="text-zinc-200">{ticket.denial_reason}</p>
             </div>
           )}
 
-          {/* Gatekeeper Actions (Only if Approved and not fully Expired) */}
+          {/* Guard Action Panel */}
           {isApproved && !isExpired && !isCancelled && (
-            <div className="pt-4 border-t border-zinc-100 space-y-3.5">
+            <div className="pt-3 border-t border-zinc-800 space-y-3 print:hidden">
               {error && (
-                <div className="bg-rose-50 border-l-2 border-destructive text-destructive px-3 py-2.5 rounded text-xs font-bold leading-normal">
-                  {error}
+                <div className="bg-rose-950/60 border-l-2 border-rose-500 text-rose-300 p-3 rounded text-xs font-medium flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
-              {/* Security Guard Code Input */}
-              <div className="space-y-1 text-left">
-                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                  Security Guard Authorization Code (Required)
+
+              {/* Guard Authorization Code */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
+                  Security Officer Authorization Code (Required)
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter your assigned unique code"
+                  placeholder="Enter your security guard code"
                   value={guardCode}
                   onChange={(e) => setGuardCode(e.target.value)}
                   disabled={isLoading}
-                  className="block w-full px-3.5 py-2.5 bg-white border border-zinc-300 rounded text-xs md:text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary-blue/20 focus:border-primary-blue"
+                  className="block w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded text-xs placeholder:text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 font-mono uppercase"
                 />
               </div>
 
@@ -373,30 +451,36 @@ export default function TicketVerification({ initialTicket, clientOrgName }: Tic
                 <button
                   onClick={handleCheckIn}
                   disabled={isLoading || !guardCode.trim()}
-                  className="w-full bg-success hover:bg-emerald-600 text-white text-xs font-bold py-3.5 rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                  className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold py-2.5 rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs uppercase tracking-wider"
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Logging Check-In...
+                      Logging Ingress...
                     </>
                   ) : (
-                    "Confirm Check-In (Grant Access)"
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      Confirm Ingress (Grant Access)
+                    </>
                   )}
                 </button>
               ) : (
                 <button
                   onClick={handleCheckOut}
                   disabled={isLoading || !guardCode.trim()}
-                  className="w-full bg-destructive hover:bg-rose-600 text-white text-xs font-bold py-3.5 rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                  className="w-full bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold py-2.5 rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs uppercase tracking-wider"
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Logging Check-Out...
+                      Logging Egress...
                     </>
                   ) : (
-                    "Confirm Check-Out (Log Exit)"
+                    <>
+                      <ArrowRight className="w-4 h-4" />
+                      Confirm Egress (Log Exit)
+                    </>
                   )}
                 </button>
               )}

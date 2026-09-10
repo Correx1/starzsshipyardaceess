@@ -16,21 +16,53 @@ export default async function TicketVerificationPage({ params }: PageProps) {
   let clientOrgName = " Client Partner";
   let errorMsg = null;
 
+  const rawParam = decodeURIComponent(ticket_number).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawParam);
+  const isPin = /^\d{6}$/.test(rawParam);
+
   try {
-    // Fetch request details joined with client information to show the organization label
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("access_requests")
       .select(`
         *,
         clients (
           org_name
         )
-      `)
-      .eq("ticket_number", ticket_number)
-      .single();
+      `);
+
+    if (isPin) {
+      query = query.eq("pin_code", rawParam);
+    } else if (isUuid) {
+      query = query.or(`ticket_number.ilike.${rawParam},id.eq.${rawParam}`);
+    } else {
+      query = query.ilike("ticket_number", rawParam);
+    }
+
+    const { data, error } = await query.limit(1).single();
 
     if (error || !data) {
-      errorMsg = "Ticket not found in registration database.";
+      // Try normalized format (e.g. STYD-1234 -> STYD.1234)
+      const altParam = rawParam.replace(/-/g, ".");
+      const { data: altData, error: altError } = await supabaseAdmin
+        .from("access_requests")
+        .select(`
+          *,
+          clients (
+            org_name
+          )
+        `)
+        .ilike("ticket_number", altParam)
+        .limit(1)
+        .single();
+
+      if (altError || !altData) {
+        errorMsg = "Entry pass (" + rawParam + ") was not found in the gate database.";
+      } else {
+        ticket = altData;
+        if (altData.clients?.org_name) {
+          clientOrgName = altData.clients.org_name;
+        }
+      }
     } else {
       ticket = data;
       if (data.clients?.org_name) {

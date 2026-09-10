@@ -175,7 +175,7 @@ export default function VisitorForm({ token }: VisitorFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Clautechs Industries"
-              className="block w-full pl-9 pr-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue"
+              className="block w-full pl-9 pr-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 placeholder:text-[11px] placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue"
               required
             />
           </div>
@@ -196,7 +196,7 @@ export default function VisitorForm({ token }: VisitorFormProps) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. +1234567890"
-              className="block w-full pl-9 pr-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue"
+              className="block w-full pl-9 pr-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 placeholder:text-[11px] placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue"
               required
             />
           </div>
@@ -236,7 +236,7 @@ export default function VisitorForm({ token }: VisitorFormProps) {
               onChange={(e) => setMachineryInput(e.target.value)}
               onKeyDown={handleMachineryKeyDown}
               placeholder="e.g. Caterpillar Excavator 320D"
-              className="block flex-1 px-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue"
+              className="block flex-1 px-3 py-2 bg-white border border-zinc-300 rounded text-sm text-zinc-900 placeholder:text-[11px] placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue"
             />
             <button
               type="button"

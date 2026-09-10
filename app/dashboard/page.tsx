@@ -173,6 +173,43 @@ export default async function AdminDashboardPage() {
     created_at: g.created_at,
   }));
 
+  // 8. Fetch all Company Fleet Cards
+  const { data: cardsData, error: cardsError } = await supabaseAdmin
+    .from("company_cards")
+    .select(`
+      id,
+      card_number,
+      client_id,
+      label,
+      pin,
+      status,
+      created_at,
+      updated_at,
+      clients (
+        id,
+        org_name,
+        username
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (cardsError) {
+    console.error("Error fetching company cards for admin:", cardsError);
+  }
+
+  const mappedCards = (cardsData || []).map((card: any) => ({
+    id: card.id,
+    card_number: card.card_number,
+    client_id: card.client_id,
+    label: card.label,
+    pin: card.pin,
+    status: card.status,
+    created_at: card.created_at,
+    updated_at: card.updated_at,
+    clientOrgName: card.clients?.org_name || "Sister Company",
+    clients: card.clients,
+  }));
+
   return (
     <AdminDashboard
       initialClients={mappedClients}
@@ -183,6 +220,7 @@ export default async function AdminDashboardPage() {
       initialSignatureName={sigName}
       initialSignaturePhone={sigPhone}
       initialSignatureCompany={sigCompany}
+      initialCards={mappedCards}
     />
   );
 }

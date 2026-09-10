@@ -87,6 +87,28 @@ export default async function ClientDashboardPage() {
     created_at: req.created_at,
   }));
 
+  // 5. Fetch Client's Company Fleet Cards
+  const { data: cardsData, error: cardsError } = await supabaseAdmin
+    .from("company_cards")
+    .select("id, card_number, client_id, label, pin, status, created_at, updated_at")
+    .eq("client_id", clientSession.id)
+    .order("created_at", { ascending: false });
+
+  if (cardsError) {
+    console.error("Error fetching client cards:", cardsError);
+  }
+
+  const mappedCards = (cardsData || []).map((card: any) => ({
+    id: card.id,
+    card_number: card.card_number,
+    client_id: card.client_id,
+    label: card.label,
+    pin: card.pin,
+    status: card.status,
+    created_at: card.created_at,
+    updated_at: card.updated_at,
+  }));
+
   const notificationEmails = Array.isArray(clientDb.notification_emails)
     ? clientDb.notification_emails
     : [];
@@ -100,6 +122,7 @@ export default async function ClientDashboardPage() {
       initialRequests={mappedRequests}
       initialNotificationEmails={notificationEmails}
       allowedCategories={allowedCategories}
+      initialCards={mappedCards}
     />
   );
 }

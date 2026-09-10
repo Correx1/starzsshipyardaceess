@@ -3,7 +3,19 @@ import { cookies } from "next/headers";
 import { verifyAdminToken } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/resend";
+import { sendWhatsAppMessage } from "@/lib/twilio";
 import { getApprovedEmailTemplate, getDeniedEmailTemplate } from "@/lib/emailTemplates";
+
+function formatPhoneForWhatsApp(phone: string): string {
+  let clean = phone.trim().replace(/[\s\-()]/g, "");
+  if (clean.startsWith("0") && clean.length === 11) {
+    clean = "+234" + clean.substring(1);
+  } else if (!clean.startsWith("+")) {
+    clean = "+" + clean;
+  }
+  return clean;
+}
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -134,6 +146,26 @@ export async function POST(req: NextRequest) {
           });
         } catch (err) {
           console.error(`Failed to send approval email to: ${email}`, err);
+        }
+      }
+
+      // Automatically dispatch WhatsApp gate pass directly to the driver
+      if (request.visitor_phone) {
+        try {
+          const driverPhone = formatPhoneForWhatsApp(request.visitor_phone);
+          const passUrl = `${domainUrl}/ticket/${request.ticket_number}`;
+          const driverMsg = `⚓ *STARZS MARINE & ENGINEERING LTD*\n*GATE PASS APPROVED*\n\n` +
+            `• *Driver:* ${request.visitor_name}\n` +
+            `• *Ticket No:* ${request.ticket_number}\n` +
+            `• *Gate PIN:* ${request.pin_code}\n` +
+            `• *Arrival Date:* ${request.expected_date}\n` +
+            `• *Client / Partner:* ${clientOrgName}\n\n` +
+            `📲 *Access Gate Pass:*\n${passUrl}\n\n` +
+            `_Present your 6-digit PIN or QR Code at the security gate for entry verification._`;
+
+          await sendWhatsAppMessage(driverPhone, driverMsg);
+        } catch (driverErr) {
+          console.error(`Failed to send WhatsApp pass to driver (${request.visitor_phone}):`, driverErr);
         }
       }
     } else if (status === "denied") {

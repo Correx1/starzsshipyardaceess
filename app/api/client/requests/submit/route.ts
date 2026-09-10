@@ -127,6 +127,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to submit request to database." }, { status: 500 });
     }
 
+    // 4b. Automatically persist driver & staff directory to DB for this sister company
+    try {
+      if (visitor_name?.trim()) {
+        await supabaseAdmin.from("client_drivers").upsert(
+          {
+            client_id: clientDb.id,
+            name: visitor_name.trim(),
+            phone: visitor_phone.trim(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "client_id,name" }
+        );
+      }
+      if (requesting_staff_name?.trim()) {
+        await supabaseAdmin.from("client_staff").upsert(
+          {
+            client_id: clientDb.id,
+            name: requesting_staff_name.trim(),
+            email: (requesting_staff_email || "").trim(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "client_id,name" }
+        );
+      }
+    } catch (profileErr) {
+      console.error("Non-blocking error saving profile directory:", profileErr);
+    }
+
     // 5. Dispatch Email Alert to Admin (if configured)
     const { data: adminSettings } = await supabaseAdmin
       .from("admin_settings")
