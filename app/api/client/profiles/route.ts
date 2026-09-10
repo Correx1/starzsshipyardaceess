@@ -34,8 +34,8 @@ export async function GET() {
       .eq("client_id", clientId)
       .order("name", { ascending: true });
 
-    let drivers = driversDb || [];
-    let staff = staffDb || [];
+    let drivers: Array<{ id?: string; name: string; phone: string }> = driversDb || [];
+    let staff: Array<{ id?: string; name: string; email: string }> = staffDb || [];
 
     // Self-healing fallback to access_requests history if tables are empty or not yet seeded
     if (drivers.length === 0 || staff.length === 0) {
@@ -55,7 +55,7 @@ export async function GET() {
           });
           drivers = Array.from(dMap.entries()).map(([k, phone]) => {
             const orig = history.find((h) => h.visitor_name?.trim().toLowerCase() === k);
-            return { name: orig?.visitor_name || k, phone };
+            return { id: k, name: orig?.visitor_name || k, phone };
           });
         }
 
@@ -68,7 +68,7 @@ export async function GET() {
           });
           staff = Array.from(sMap.entries()).map(([k, email]) => {
             const orig = history.find((h) => h.requesting_staff_name?.trim().toLowerCase() === k);
-            return { name: orig?.requesting_staff_name || k, email };
+            return { id: k, name: orig?.requesting_staff_name || k, email };
           });
         }
       }

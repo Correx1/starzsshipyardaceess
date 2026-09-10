@@ -102,7 +102,8 @@ interface SecurityGuard {
   id: string;
   name: string;
   phone: string;
-  code: string;
+  code?: string;
+  guard_code?: string;
   status: "active" | "inactive";
   created_at: string;
 }
@@ -151,7 +152,7 @@ export default function AdminDashboard({
         letPart += letters.charAt(Math.floor(Math.random() * letters.length));
       }
       code = numPart + letPart;
-      isUnique = !existingGuards.some((g) => g.code.toUpperCase() === code.toUpperCase());
+      isUnique = !existingGuards.some((g) => (g.guard_code || g.code || "").toUpperCase() === code.toUpperCase());
       attempts++;
     }
     return code;
@@ -1366,7 +1367,7 @@ export default function AdminDashboard({
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5 text-[11px] text-zinc-500 font-mono">
                     <span>{guard.phone}</span>
                     <span className="hidden sm:inline text-zinc-300">•</span>
-                    <span className="bg-zinc-100 px-1.5 py-0.5 rounded font-bold text-[10px] text-zinc-700">Code: {guard.guard_code}</span>
+                    <span className="bg-zinc-100 px-1.5 py-0.5 rounded font-bold text-[10px] text-zinc-700">Code: {guard.guard_code || guard.code}</span>
                   </div>
                 </div>
 
@@ -1376,7 +1377,7 @@ export default function AdminDashboard({
                     onClick={() => {
                       setGuardName(guard.name);
                       setGuardPhone(guard.phone);
-                      setGuardCode(guard.guard_code);
+                      setGuardCode(guard.guard_code || guard.code || "");
                       setEditingGuardId(guard.id);
                       setShowGuardForm(true);
                       setGuardError(null);
